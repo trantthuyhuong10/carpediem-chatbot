@@ -1,3 +1,14 @@
-google-generativeai   
-streamlit             
-python-dotenv         
+openai
+streamlit
+python-dotenv
+neo4j
+faiss-cpu
+sentence-transformers
+torchvision
+numpy
+Pillow
+requests
+beautifulsoup4
+fastapi
+uvicorn
+python-multipart

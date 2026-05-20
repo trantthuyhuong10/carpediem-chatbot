@@ -2,10 +2,12 @@ import os
 import json
 import re
 import base64
+import time
+import requests
 from typing import List, Dict, Optional
 from io import BytesIO
 from dotenv import load_dotenv
-import google.generativeai as genai
+from openai import OpenAI
 from PIL import Image
 
 from src.graph_rag import GraphRAG
@@ -53,23 +55,29 @@ Nếu không biết câu trả lời, nói thẳng là không rõ và gợi ý l
 
     IMAGE_PROMPT = """Bạn là trợ lý AI cho thương hiệu Carpediem - chuyên về nến thơm, tinh dầu, đá thơm và giftset cao cấp tại Việt Nam.
 
-Hãy phân tích ảnh này và trả lời bằng tiếng Việt:
-- Mô tả ngắn gọn nội dung ảnh
-- Nếu ảnh liên quan đến không gian, phong cách, hoặc mood → gợi ý sản phẩm Carpediem phù hợp
-- Nếu ảnh là sản phẩm Carpediem → nhận diện và cung cấp thông tin
-- Nếu ảnh không liên quan → trả lời lịch sự, vui vẻ
+Nhìn ảnh này và trả lời bằng tiếng Việt:
+- Nếu ảnh là sản phẩm Carpediem → xác nhận và cung cấp thông tin CHÍNH XÁC từ kết quả tìm kiếm: tên, giá, link mua, điểm nổi bật
+- Nếu ảnh là không gian/phong cách → gợi ý sản phẩm phù hợp từ kết quả
+- Nếu không tìm thấy sản phẩm khớp → nói lịch sự
 
-Sản phẩm hiện có trong kho:
-{products}
+KHÔNG bịa thông tin. Chỉ dùng dữ liệu từ kết quả tìm kiếm.
+
+Kết quả tìm kiếm:
+{results}
 """
 
-    def __init__(self, model_name: str = "gemini-2.5-flash"):
-        api_key = os.getenv("GEMINI_API_KEY")
+    def __init__(self, model_name: str = None):
+        api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
-            raise ValueError("lỗi")
-        genai.configure(api_key=api_key)
+            raise ValueError("Thiếu OPENAI_API_KEY trong file .env")
 
-        self.model = genai.GenerativeModel(model_name)
+        base_url = os.getenv("OPENAI_BASE_URL")
+        self.model_name = model_name or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
+        if base_url:
+            self.client = OpenAI(api_key=api_key, base_url=base_url)
+        else:
+            self.client = OpenAI(api_key=api_key)
         self.rag = GraphRAG()
         self.history: List[Dict[str, str]] = []
         self.system_context = (
@@ -81,30 +89,38 @@ Sản phẩm hiện có trong kho:
     def close(self):
         self.rag.close()
 
+    def _call_openai(self, messages, max_retries=1):
+        for attempt in range(max_retries + 1):
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model_name,
+                    messages=messages,
+                )
+                return response.choices[0].message.content.strip()
+            except Exception as e:
+                error_str = str(e)
+                if "429" in error_str and attempt < max_retries:
+                    match = re.search(r'retry in ([\d.]+)s', error_str)
+                    wait = int(float(match.group(1))) + 5 if match else 30
+                    print(f"[OpenAI quota] Waiting {wait}s before retry...")
+                    time.sleep(wait)
+                else:
+                    raise
+
     def classify_intent(self, query: str) -> str:
         prompt = self.INTENT_PROMPT.format(query=query)
-        response = self.model.generate_content(prompt)
-        intent = response.text.strip().strip('"').strip("'").lower()
+        response = self._call_openai([{"role": "user", "content": prompt}])
+        intent = response.strip().strip('"').strip("'").lower()
         if intent not in ("product_search", "general_qa", "image_analysis"):
             intent = "product_search"
         return intent
 
-    def _get_all_products_summary(self) -> str:
-        all_products = self.rag.query("", top_k=51)
-        lines = []
-        for p in all_products:
-            cats = ", ".join(p.get("categories", []))
-            lines.append(f"- {p['name']} ({p.get('price', '')}) - {cats}")
-        return "\n".join(lines)
-
-    def handle_product_search(self, query: str) -> str:
+    def handle_product_search(self, query: str) -> tuple:
         results = self.rag.query(query, top_k=5)
         formatted = self.rag.get_product_context(results)
         prompt = self.PRODUCT_PROMPT.format(query=query, results=formatted)
 
-        chat = self.model.start_chat(history=[])
-        response = chat.send_message(prompt)
-        answer = response.text.strip()
+        answer = self._call_openai([{"role": "user", "content": prompt}])
 
         self.history.append({"role": "user", "content": query})
         self.history.append({"role": "assistant", "content": answer})
@@ -112,25 +128,29 @@ Sản phẩm hiện có trong kho:
         return answer, results
 
     def handle_general_qa(self, query: str) -> str:
-        prompt = self.GENERAL_PROMPT.format(query=query)
+        messages = [{"role": "system", "content": self.system_context}]
 
-        history_for_context = []
         for msg in self.history[-6:]:
-            history_for_context.append({
-                "role": "user" if msg["role"] == "user" else "model",
-                "parts": [msg["content"]],
+            messages.append({
+                "role": "assistant" if msg["role"] == "assistant" else "user",
+                "content": msg["content"],
             })
 
-        chat = self.model.start_chat(history=history_for_context)
-        response = chat.send_message(prompt)
-        answer = response.text.strip()
+        messages.append({"role": "user", "content": self.GENERAL_PROMPT.format(query=query)})
+
+        answer = self._call_openai(messages)
 
         self.history.append({"role": "user", "content": query})
         self.history.append({"role": "assistant", "content": answer})
 
         return answer
 
-    def handle_image(self, image_data, query: str = "") -> str:
+    def _image_to_base64(self, image: Image.Image) -> str:
+        buffered = BytesIO()
+        image.save(buffered, format="JPEG")
+        return base64.b64encode(buffered.getvalue()).decode()
+
+    def handle_image(self, image_data, query: str = "") -> tuple:
         if isinstance(image_data, bytes):
             image = Image.open(BytesIO(image_data))
         elif isinstance(image_data, str):
@@ -138,38 +158,56 @@ Sản phẩm hiện có trong kho:
                 header, encoded = image_data.split(",", 1)
                 image_bytes = base64.b64decode(encoded)
                 image = Image.open(BytesIO(image_bytes))
+            elif image_data.startswith(("http://", "https://")):
+                resp = requests.get(image_data, timeout=10)
+                resp.raise_for_status()
+                image = Image.open(BytesIO(resp.content))
             else:
                 image = Image.open(image_data)
         elif isinstance(image_data, Image.Image):
             image = image_data
         else:
-            return "lỗi ảnh"
+            return "Không thể xử lý ảnh. Vui lòng gửi ảnh dưới dạng PNG, JPG hoặc JPEG.", []
 
-        products_summary = self._get_all_products_summary()
-        text_prompt = self.IMAGE_PROMPT.format(products=products_summary)
+        image = image.convert("RGB")
+        image_b64 = self._image_to_base64(image)
+
+        search_query = query if query else "nến thơm tinh dầu quà tặng"
+        results = self.rag.query(search_query.strip(), top_k=5)
+
+        if results:
+            formatted = self.rag.get_product_context(results)
+        else:
+            formatted = "Không tìm thấy sản phẩm khớp trong database."
+
+        prompt = self.IMAGE_PROMPT.format(results=formatted)
         if query:
-            text_prompt += f"\n\nUser: {query}"
+            prompt += f"\n\nNgười dùng hỏi: {query}"
 
-        response = self.model.generate_content([text_prompt, image])
-        answer = response.text.strip()
+        messages = [{
+            "role": "user",
+            "content": [
+                {"type": "text", "text": prompt},
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"}},
+            ]
+        }]
+
+        answer = self._call_openai(messages)
 
         display_query = query if query else "Phân tích ảnh"
         self.history.append({"role": "user", "content": display_query})
         self.history.append({"role": "assistant", "content": answer})
 
-        return answer
+        return answer, results
 
     def chat(self, message: str, image=None) -> tuple:
         message = message.strip()
         if not message and image is None:
-            return "lỗi nhập", []
+            return "Vui lòng nhập câu hỏi hoặc gửi ảnh.", []
 
         if image is not None:
-            answer = self.handle_image(image, message)
-            return answer, []
-
-        if not message:
-            return self.handle_image(image), []
+            answer, results = self.handle_image(image, message)
+            return answer, results
 
         intent = self.classify_intent(message)
 
@@ -177,7 +215,7 @@ Sản phẩm hiện có trong kho:
             answer, results = self.handle_product_search(message)
             return answer, results
         elif intent == "image_analysis":
-            return "nhập ảnh", []
+            return "Bạn muốn phân tích ảnh? Vui lòng gửi kèm ảnh nhé.", []
         else:
             answer = self.handle_general_qa(message)
             return answer, []

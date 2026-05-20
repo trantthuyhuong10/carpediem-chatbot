@@ -1,6 +1,5 @@
 import json
 import os
-import math
 
 class DataChunker:
     def __init__(self):
@@ -18,15 +17,6 @@ class DataChunker:
             chunks.append(chunk)
         return chunks
 
-    def chunk_by_category(self, data, category_field="category"):
-        categories = {}
-        for item in data:
-            cat = item.get(category_field, "uncategorized")
-            if cat not in categories:
-                categories[cat] = []
-            categories[cat].append(item)
-        return list(categories.values())
-
     def save_chunks(self, chunks, prefix="chunk"):
         os.makedirs(self.output_dir, exist_ok=True)
         for i, chunk in enumerate(chunks, 1):
@@ -35,18 +25,10 @@ class DataChunker:
             with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(chunk, f, ensure_ascii=False, indent=2)
 
-    def run(self, mode="batch", batch_size=10, category_field="category"):
+    def run(self, batch_size=10):
         data = self.load_data()
-
-        if mode == "batch":
-            chunks = self.chunk_by_batch(data, batch_size)
-        elif mode == "category":
-            chunks = self.chunk_by_category(data, category_field)
-        else:
-            raise ValueError("mode must be 'batch' or 'category'")
-
+        chunks = self.chunk_by_batch(data, batch_size)
         self.save_chunks(chunks)
-
         return {
             "total_products": len(data),
             "total_chunks": len(chunks),
@@ -55,5 +37,5 @@ class DataChunker:
 
 if __name__ == "__main__":
     chunker = DataChunker()
-    result = chunker.run(mode="batch", batch_size=10)
+    result = chunker.run(batch_size=10)
 
