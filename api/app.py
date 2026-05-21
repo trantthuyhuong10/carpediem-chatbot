@@ -142,7 +142,8 @@ async def get_stats():
         return StatsResponse(
             products=stats["products"],
             categories=stats["categories"],
-            chat_messages=stats["chat_messages"],
+            chat_messages=stats["session_messages"],
+            session_id=stats.get("session_id", ""),
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

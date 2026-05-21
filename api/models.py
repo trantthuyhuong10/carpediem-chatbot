@@ -27,6 +27,7 @@ class StatsResponse(BaseModel):
     products: int | str
     categories: int | str
     chat_messages: int
+    session_id: str = ""
 
 
 class HealthResponse(BaseModel):

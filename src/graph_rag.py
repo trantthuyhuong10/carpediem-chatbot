@@ -58,7 +58,7 @@ class GraphRAG:
                 OPTIONAL MATCH (p)-[:HAS_ENTITY]->(e:Entity)
                 RETURN p.name AS name, p.price AS price, p.url AS url, p.description AS description,
                     collect(DISTINCT c.name) AS categories, collect(DISTINCT col.name) AS collections,
-                    collect(DISTINCT {name: e.name, type: e.type}) AS entities
+                    [x IN collect(DISTINCT {name: e.name, type: e.type}) WHERE x.name IS NOT NULL] AS entities
             """, names=names)]
 
     def graph_find_similar(self, name, top_k=3):
@@ -163,6 +163,66 @@ class GraphRAG:
             })
         return [self.format_product(p) for p in final]
 
+    def _preprocess_query(self, query):
+        cleaned = query.lower()
+        filler_patterns = [
+            r"cho\s+tôi\s+(biết\s+)?",
+            r"tìm\s+giúp\s+(tôi\s+)?",
+            r"tìm\s+cho\s+tôi",
+            r"thông\s+tin\s+(về\s+)?",
+            r"sản\s+phẩm\s+",
+            r"mô\s+tả\s+(chi\s+tiết\s+)?(về\s+)?",
+            r"đưa\s+ra\s+",
+            r"cho\s+mình\s+xem\s+",
+            r"mình\s+muốn\s+tìm\s+",
+            r"tôi\s+cần\s+tìm\s+",
+            r"có\s+(những\s+)?",
+            r"gợi\s+ý\s+(cho\s+)?",
+            r"cho\s+tôi\s+xem\s+",
+            r"hãy\s+(chỉ\s+)?(cho\s+)?(tôi\s+)?(biết\s+)?",
+            r"tôi\s+muốn\s+",
+            r"tôi\s+đang\s+tìm\s+",
+            r"liệt\s+kê\s+(các\s+)?",
+            r"cho\s+mình\s+hỏi\s+",
+            r"mình\s+cần\s+tìm\s+",
+            r"^tìm\s+",
+            r"\s+nào\s+(phù\s+hợp|bán\s+chạy|tốt|hay)",
+            r"\s+nào\s*$",
+            r"\s+phù\s+hợp\s*$",
+            r"\s+bán\s+chạy\s*$",
+        ]
+        for pattern in filler_patterns:
+            cleaned = re.sub(pattern, "", cleaned).strip()
+        return cleaned if cleaned else query.lower()
+
+    def neo4j_text_search(self, query, top_k=5):
+        keywords = [w for w in query.lower().split() if len(w) >= 2]
+        if not keywords:
+            return []
+        conditions = " OR ".join([f"toLower(p.name) CONTAINS toLower(${i})" for i in range(len(keywords))])
+        score_expr = " + ".join([f"CASE WHEN toLower(p.name) CONTAINS toLower(${i}) THEN 1 ELSE 0 END" for i in range(len(keywords))])
+        params = {str(i): kw for i, kw in enumerate(keywords)}
+        params["limit"] = top_k
+        with self.driver.session() as s:
+            results = [r.data() for r in s.run(f"""
+                MATCH (p:Product) WHERE {conditions}
+                OPTIONAL MATCH (p)-[:BELONGS_TO]->(c:Category)
+                OPTIONAL MATCH (p)-[:PART_OF]->(col:Collection)
+                OPTIONAL MATCH (p)-[:HAS_ENTITY]->(e:Entity)
+                RETURN p.name AS name, p.price AS price, p.url AS url,
+                       p.description AS description, p.original_price AS original_price,
+                       p.discount AS discount, p.images AS images,
+                       collect(DISTINCT c.name) AS categories,
+                       collect(DISTINCT col.name) AS collections,
+                       collect(DISTINCT {{name: e.name, type: e.type}}) AS raw_entities,
+                       {score_expr} AS match_score
+                ORDER BY match_score DESC, p.name LIMIT $limit
+            """, **params)]
+        for r in results:
+            r["entities"] = [e for e in r.pop("raw_entities", []) if e.get("name")]
+            r["score"] = r.pop("match_score", 0)
+        return results
+
     def query(self, user_input, top_k=5, mode="auto"):
         user_input = user_input.strip()
         if mode == "occasion" or any(k in user_input.lower() for k in ["sinh nhật", "valentine", "8/3", "20/10", "cưới", "tân gia", "giáng sinh", "tết"]):
@@ -170,7 +230,17 @@ class GraphRAG:
         elif mode == "budget" or any(k in user_input.lower() for k in ["dưới", "trên", "khoảng", "từ", "đến", "ngân sách", "budget"]):
             results = self.recommend_by_budget(user_input, top_k)
         else:
-            results = self.graph_vector_hybrid_search(user_input, top_k)
+            cleaned = self._preprocess_query(user_input)
+            search_query = cleaned if cleaned != user_input.lower() else user_input
+            results = self.graph_vector_hybrid_search(search_query, top_k)
+            if results:
+                top_name = results[0].get("name", "").lower()
+                keywords = [w for w in search_query.lower().split() if len(w) >= 2]
+                has_match = any(kw in top_name for kw in keywords)
+                if not has_match:
+                    results = self.neo4j_text_search(search_query, top_k)
+            if not results:
+                results = self.neo4j_text_search(search_query, top_k)
         return [self.format_product(p) for p in results]
 
     def format_product(self, p):
@@ -197,18 +267,19 @@ class GraphRAG:
             return "Không tìm thấy sản phẩm phù hợp."
         lines = []
         for i, p in enumerate(results, 1):
-            entities = ", ".join(e["name"] for e in p.get("entities", [])[:5])
+            entities = [e["name"] for e in p.get("entities", [])[:5] if e.get("name")]
+            entities_str = ", ".join(entities) if entities else "N/A"
             lines.append(
                 f"{i}. {p['name']} - Giá: {p.get('price', 'Liên hệ')}\n"
                 f"   Link: {p['url']}\n"
                 f"   Danh mục: {', '.join(p.get('categories', []))}\n"
-                f"   Điểm nổi bật: {entities}"
+                f"   Điểm nổi bật: {entities_str}"
             )
         return "\n\n".join(lines)
 
 if __name__ == "__main__":
     rag = GraphRAG()
-    print("Type 'exit' to quit\n")
+    print("Type 'exit' or 'quit' to quit\n")
     while True:
         q = input("User: ").strip()
         if q in ["exit", "quit"]:

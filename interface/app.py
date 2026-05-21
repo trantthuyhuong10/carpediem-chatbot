@@ -11,11 +11,100 @@ load_dotenv()
 
 from src.chatbot import ChatBot
 
+BOT_AVATAR = "interface/assets/chatbot_ava.webp"
+USER_AVATAR = "interface/assets/user_ava.webp"
+
 st.set_page_config(
     page_title="Carpe Diem",
+    page_icon="interface/assets/chatbot_ava.webp",
     layout="wide",
 )
 
+# --- Custom CSS ---
+st.markdown("""
+<style>
+/* Chat container */
+.stChatMessage {
+    padding: 8px 12px;
+    margin: 4px 0;
+}
+
+/* User message bubble - right aligned by Streamlit default */
+div[data-testid="stChatMessage"][data-testid="stChatMessage-user"] div[data-testid="stChatMessageContent"] {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 18px 18px 4px 18px;
+    padding: 12px 16px;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+/* Bot message bubble - left aligned by Streamlit default */
+div[data-testid="stChatMessage"][data-testid="stChatMessage-assistant"] div[data-testid="stChatMessageContent"] {
+    background: #f0f2f6;
+    color: #1a1a2e;
+    border-radius: 18px 18px 18px 4px;
+    padding: 12px 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Avatar styling */
+div[data-testid="stChatMessage"] img {
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Input area centering */
+.input-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 12px 0;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Product card styling */
+.product-card {
+    background: white;
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.product-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Hide default streamlit footer */
+footer {visibility: hidden;}
+footer:after {visibility: hidden;}
+
+/* Main chat area background */
+.main .block-container {
+    background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
+    border-radius: 16px;
+}
+
+/* Suggestion buttons */
+div[data-testid="stSidebar"] button[kind="secondary"] {
+    text-align: left;
+    font-size: 0.85rem;
+    padding: 8px 12px;
+    border-radius: 8px;
+}
+
+/* Divider styling */
+hr {
+    border: none;
+    border-top: 1px solid #e0e0e0;
+    margin: 8px 0;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# --- Init state ---
 if "bot" not in st.session_state:
     try:
         st.session_state.bot = ChatBot()
@@ -63,18 +152,17 @@ def render_product_card(product, key):
                 st.caption(" | ".join(cats))
             st.markdown(f"[Xem sản phẩm →]({product['url']})")
 
-
-def get_stats():
-    try:
-        return st.session_state.bot.get_stats()
-    except Exception:
-        return {"products": "N/A", "categories": "N/A", "chat_messages": len(st.session_state.messages)}
-
-
 def process_message(prompt, image_bytes=None):
     st.session_state.messages.append({"role": "user", "content": prompt, "image": image_bytes})
-    with st.chat_message("assistant"):
-        with st.spinner("Đang xử lý..."):
+
+    avatar = USER_AVATAR if os.path.exists(USER_AVATAR) else "👤"
+    with st.chat_message("user", avatar=avatar):
+        if image_bytes:
+            st.image(image_bytes, width=200)
+        st.markdown(prompt)
+
+    with st.chat_message("assistant", avatar=BOT_AVATAR if os.path.exists(BOT_AVATAR) else "🕯️"):
+        with st.spinner():
             try:
                 answer, results = st.session_state.bot.chat(prompt, image=image_bytes)
                 st.markdown(answer)
@@ -99,17 +187,10 @@ def process_message(prompt, image_bytes=None):
                 })
 
 
+# --- Sidebar ---
 with st.sidebar:
     st.header("Carpe Diem")
-    st.caption("“THỦ CÔNG, AN TOÀN, THÂN THIỆN”")
-
-    st.divider()
-
-    stats = get_stats()
-    st.subheader("Thống kê")
-    st.metric("Sản phẩm", stats["products"])
-    st.metric("Danh mục", stats["categories"])
-    st.metric("Tin nhắn", stats["chat_messages"])
+    st.caption("THỦ CÔNG, AN TOÀN, THÂN THIỆN")
 
     st.divider()
 
@@ -133,37 +214,46 @@ with st.sidebar:
             process_message(s)
             st.rerun()
 
+# --- Main chat area ---
 st.title("Carpe Diem")
-st.caption("“Thủ công, an toàn, thân thiện”")
+st.caption("Thủ công, an toàn, thân thiện")
 
+# Render messages from history
 for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        if msg.get("image"):
-            st.image(msg["image"], width=200)
-        st.markdown(msg["content"])
-        if msg["role"] == "assistant" and msg.get("results"):
-            st.markdown("**Sản phẩm gợi ý:**")
-            cols = st.columns(min(len(msg["results"]), 3))
-            for i, product in enumerate(msg["results"]):
-                with cols[i % 3]:
-                    render_product_card(product, f"prod_{id(msg)}_{i}")
+    if msg["role"] == "user":
+        avatar = USER_AVATAR if os.path.exists(USER_AVATAR) else "👤"
+        with st.chat_message("user", avatar=avatar):
+            if msg.get("image"):
+                st.image(msg["image"], width=200)
+            st.markdown(msg["content"])
+    else:
+        avatar = BOT_AVATAR if os.path.exists(BOT_AVATAR) else "🕯️"
+        with st.chat_message("assistant", avatar=avatar):
+            st.markdown(msg["content"])
+            if msg.get("results"):
+                st.markdown("**Sản phẩm gợi ý:**")
+                cols = st.columns(min(len(msg["results"]), 3))
+                for i, product in enumerate(msg["results"]):
+                    with cols[i % 3]:
+                        render_product_card(product, f"prod_{id(msg)}_{i}")
 
-st.divider()
-
+# --- Image preview ---
 if st.session_state.pending_image:
-    col_preview, col_clear = st.columns([5, 2])
+    st.divider()
+    col_preview, col_clear = st.columns([5, 1])
     with col_preview:
         st.image(st.session_state.pending_image, width=150)
     with col_clear:
-        if st.button("✕", key="clear_img"):
+        if st.button("✕ Xóa ảnh", key="clear_img"):
             clear_pending_image()
             st.rerun()
 
-col_attach, col_input = st.columns([4, 11])
-
-with col_attach:
+# --- Input area (centered) ---
+st.divider()
+col_left, col_input, col_right = st.columns([1, 10, 1])
+with col_input:
     uploaded = st.file_uploader(
-        "📎",
+        "Đính kèm ảnh",
         type=["png", "jpg", "jpeg", "webp"],
         label_visibility="collapsed",
         key=f"uploader_{st.session_state.uploader_key}",
@@ -172,7 +262,6 @@ with col_attach:
         st.session_state.pending_image = uploaded.read()
         st.rerun()
 
-with col_input:
     prompt = st.chat_input("Nhập câu hỏi", key="chat_input_main")
 
 if prompt:

@@ -11,6 +11,7 @@ from openai import OpenAI
 from PIL import Image
 
 from src.graph_rag import GraphRAG
+from src.memory_store import MemoryStore
 
 load_dotenv()
 
@@ -27,6 +28,8 @@ Câu hỏi: {query}
 
     PRODUCT_PROMPT = """Bạn là trợ lý AI cho thương hiệu Carpediem - chuyên về nến thơm, tinh dầu, đá thơm và giftset cao cấp tại Việt Nam.
 
+{conversation_context}
+
 Người dùng hỏi: {query}
 
 Kết quả tìm kiếm được:
@@ -37,6 +40,7 @@ Hãy trả lời bằng tiếng Việt:
 - Liệt kê sản phẩm gợi ý kèm tên, giá, điểm nổi bật
 - Nếu không có sản phẩm phù hợp, nói lịch sự và gợi ý người dùng mô tả cụ thể hơn
 - KHÔNG bịa thông tin sản phẩm, chỉ dùng dữ liệu trên
+- Nếu người dùng hỏi follow-up về sản phẩm đã đề cập trước đó, trả lời dựa trên context và kết quả tìm kiếm
 """
 
     GENERAL_PROMPT = """Bạn là trợ lý AI cho thương hiệu Carpediem - chuyên về nến thơm, tinh dầu, đá thơm và giftset cao cấp tại Việt Nam.
@@ -46,6 +50,8 @@ Thông tin về Carpediem:
 - Sản phẩm: nến thơm, tinh dầu, đá thơm khuếch hương, giftset quà tặng
 - Website: https://carpediem.vn
 
+{conversation_context}
+
 Người dùng hỏi: {query}
 
 Trả lời bằng tiếng Việt, thân thiện, chuyên nghiệp.
@@ -54,6 +60,8 @@ Nếu không biết câu trả lời, nói thẳng là không rõ và gợi ý l
 """
 
     IMAGE_PROMPT = """Bạn là trợ lý AI cho thương hiệu Carpediem - chuyên về nến thơm, tinh dầu, đá thơm và giftset cao cấp tại Việt Nam.
+
+{conversation_context}
 
 Nhìn ảnh này và trả lời bằng tiếng Việt:
 - Nếu ảnh là sản phẩm Carpediem → xác nhận và cung cấp thông tin CHÍNH XÁC từ kết quả tìm kiếm: tên, giá, link mua, điểm nổi bật
@@ -66,20 +74,22 @@ Kết quả tìm kiếm:
 {results}
 """
 
-    def __init__(self, model_name: str = None):
+    def __init__(self, model_name: str = None, max_turns: int = 5):
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             raise ValueError("Thiếu OPENAI_API_KEY trong file .env")
 
         base_url = os.getenv("OPENAI_BASE_URL")
         self.model_name = model_name or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        self.max_turns = max_turns
 
         if base_url:
             self.client = OpenAI(api_key=api_key, base_url=base_url)
         else:
             self.client = OpenAI(api_key=api_key)
         self.rag = GraphRAG()
-        self.history: List[Dict[str, str]] = []
+        self.memory = MemoryStore()
+        self.session_id = self.memory.load_or_create_session()
         self.system_context = (
             "Bạn là trợ lý AI cho thương hiệu Carpediem - chuyên về nến thơm, "
             "tinh dầu, đá thơm và giftset cao cấp tại Việt Nam. "
@@ -88,6 +98,7 @@ Kết quả tìm kiếm:
 
     def close(self):
         self.rag.close()
+        self.memory.close()
 
     def _call_openai(self, messages, max_retries=1):
         for attempt in range(max_retries + 1):
@@ -107,6 +118,49 @@ Kết quả tìm kiếm:
                 else:
                     raise
 
+    def _save_turn(self, user_msg: str, assistant_msg: str):
+        stats = self.memory.get_session_stats(self.session_id)
+        turn_number = (stats["message_count"] // 2) + 1 if stats else 1
+        self.memory.save_turn(self.session_id, user_msg, assistant_msg, turn_number)
+
+    def _build_conversation_context(self) -> str:
+        messages = self.memory.get_recent_messages(self.session_id, limit=self.max_turns * 2)
+        if not messages:
+            return ""
+        context_lines = ["Lịch sử hội thoại gần đây:"]
+        for msg in messages:
+            role = "Bạn" if msg["role"] == "user" else "Trợ lý"
+            content = msg["content"][:300]
+            context_lines.append(f"- {role}: {content}")
+        return "\n".join(context_lines)
+
+    def _get_recent_products_from_history(self) -> List[str]:
+        products = []
+        messages = self.memory.get_recent_messages(self.session_id, limit=self.max_turns * 2)
+        for msg in reversed(messages):
+            if msg["role"] == "assistant":
+                matches = re.findall(r"(\d+)[\.\)]\s*([^\n\-–]+?)(?:\s*[\-–]|$)", msg["content"])
+                for _, name in matches:
+                    name = name.strip().rstrip(".,;:")
+                    if name and len(name) > 2 and name not in products:
+                        products.append(name)
+            if len(products) >= 3:
+                break
+        return products
+
+    def _resolve_contextual_query(self, query: str) -> str:
+        pronouns = ["đó", "này", "kia", "nó", "cái đó", "cái này",
+                    "sản phẩm đó", "món đó", "loại đó", "em đó",
+                    "cái nào", "món nào", "loại nào"]
+        has_pronoun = any(p in query.lower() for p in pronouns)
+        if not has_pronoun:
+            return query
+        last_products = self._get_recent_products_from_history()
+        if last_products:
+            names = ", ".join(last_products[:2])
+            return f"{query} (đang nói về: {names})"
+        return query
+
     def classify_intent(self, query: str) -> str:
         prompt = self.INTENT_PROMPT.format(query=query)
         response = self._call_openai([{"role": "user", "content": prompt}])
@@ -116,32 +170,27 @@ Kết quả tìm kiếm:
         return intent
 
     def handle_product_search(self, query: str) -> tuple:
-        results = self.rag.query(query, top_k=5)
+        resolved_query = self._resolve_contextual_query(query)
+        results = self.rag.query(resolved_query, top_k=5)
         formatted = self.rag.get_product_context(results)
-        prompt = self.PRODUCT_PROMPT.format(query=query, results=formatted)
+        context = self._build_conversation_context()
+        prompt = self.PRODUCT_PROMPT.format(query=query, results=formatted, conversation_context=context)
 
         answer = self._call_openai([{"role": "user", "content": prompt}])
 
-        self.history.append({"role": "user", "content": query})
-        self.history.append({"role": "assistant", "content": answer})
+        self._save_turn(query, answer)
 
         return answer, results
 
     def handle_general_qa(self, query: str) -> str:
+        context = self._build_conversation_context()
         messages = [{"role": "system", "content": self.system_context}]
 
-        for msg in self.history[-6:]:
-            messages.append({
-                "role": "assistant" if msg["role"] == "assistant" else "user",
-                "content": msg["content"],
-            })
-
-        messages.append({"role": "user", "content": self.GENERAL_PROMPT.format(query=query)})
+        messages.append({"role": "user", "content": self.GENERAL_PROMPT.format(query=query, conversation_context=context)})
 
         answer = self._call_openai(messages)
 
-        self.history.append({"role": "user", "content": query})
-        self.history.append({"role": "assistant", "content": answer})
+        self._save_turn(query, answer)
 
         return answer
 
@@ -180,7 +229,8 @@ Kết quả tìm kiếm:
         else:
             formatted = "Không tìm thấy sản phẩm khớp trong database."
 
-        prompt = self.IMAGE_PROMPT.format(results=formatted)
+        context = self._build_conversation_context()
+        prompt = self.IMAGE_PROMPT.format(results=formatted, conversation_context=context)
         if query:
             prompt += f"\n\nNgười dùng hỏi: {query}"
 
@@ -195,8 +245,7 @@ Kết quả tìm kiếm:
         answer = self._call_openai(messages)
 
         display_query = query if query else "Phân tích ảnh"
-        self.history.append({"role": "user", "content": display_query})
-        self.history.append({"role": "assistant", "content": answer})
+        self._save_turn(display_query, answer)
 
         return answer, results
 
@@ -221,13 +270,34 @@ Kết quả tìm kiếm:
             return answer, []
 
     def reset_history(self):
-        self.history = []
+        self.memory.delete_session(self.session_id)
+        self.session_id = self.memory.create_session()
+
+    def get_session_id(self) -> str:
+        return self.session_id
+
+    def list_sessions(self, limit: int = 10) -> List[Dict]:
+        return self.memory.list_recent_sessions(limit)
+
+    def load_session(self, session_id: str) -> bool:
+        stats = self.memory.get_session_stats(session_id)
+        if stats:
+            self.session_id = session_id
+            return True
+        return False
 
     def get_stats(self):
         try:
             with self.rag.driver.session() as session:
                 product_count = session.run("MATCH (p:Product) RETURN count(p) AS cnt").single()["cnt"]
                 category_count = session.run("MATCH (c:Category) RETURN count(c) AS cnt").single()["cnt"]
-                return {"products": product_count, "categories": category_count, "chat_messages": len(self.history)}
         except Exception:
-            return {"products": "N/A", "categories": "N/A", "chat_messages": len(self.history)}
+            product_count = "N/A"
+            category_count = "N/A"
+        session_stats = self.memory.get_session_stats(self.session_id)
+        return {
+            "products": product_count,
+            "categories": category_count,
+            "session_id": self.session_id,
+            "session_messages": session_stats["message_count"] if session_stats else 0,
+        }
