@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carpe Diem - Admin</title>
+    <link rel="stylesheet" href="/static/admin.css">
+</head>
+<body>
+    <div id="app">
+        <div id="login-screen" class="login-screen">
+            <div class="login-box">
+                <h1>Carpe Diem</h1>
+                <p>Admin</p>
+                <form id="login-form">
+                    <input type="password" id="password-input" placeholder="Nhập mật khẩu admin" required>
+                    <button type="submit">Đăng nhập</button>
+                </form>
+                <p id="login-error" class="error" style="display: none;"></p>
+            </div>
+        </div>
+
+        <div id="admin-panel" class="admin-panel" style="display: none;">
+            <header class="admin-header">
+                <h1>Admin</h1>
+                <div class="header-actions">
+                    <a href="/" class="btn btn-secondary">← Quay lại Chatbot</a>
+                    <button id="logout-btn" class="btn btn-danger">Đăng xuất</button>
+                </div>
+            </header>
+
+            <main class="admin-content">
+                <section class="stats-section">
+                    <h2>Thống kê</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-products-cache">-</div>
+                            <div class="stat-label">Sản phẩm (cache)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-chunks">-</div>
+                            <div class="stat-label">Chunks</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-embeddings">-</div>
+                            <div class="stat-label">Embeddings</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-neo4j">-</div>
+                            <div class="stat-label">Neo4j Products</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-sessions">-</div>
+                            <div class="stat-label">Chat Sessions</div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="pipeline-section">
+                    <h2>Data Pipeline</h2>
+                    <div class="pipeline-buttons">
+                        <button id="btn-crawl" class="btn btn-pipeline">
+                            <span class="btn-text">Crawl</span>
+                        </button>
+                        <button id="btn-crawl-details" class="btn btn-pipeline">
+                            <span class="btn-text">Crawl Details</span>
+                        </button>
+                        <button id="btn-chunk" class="btn btn-pipeline">
+                            <span class="btn-text">Chunking</span>
+                        </button>
+                        <button id="btn-embed" class="btn btn-pipeline">
+                            <span class="btn-text">Embedding</span>
+                        </button>
+                        <button id="btn-full-pipeline" class="btn btn-primary btn-full">
+                            <span class="btn-text">Run Full Pipeline</span>
+                        </button>
+                    </div>
+                    <div id="pipeline-status" class="pipeline-status"></div>
+                </section>
+
+                <section class="products-section">
+                    <h2>Sản phẩm (Neo4j)</h2>
+                    <div class="table-controls">
+                        <input type="text" id="product-search" placeholder="Tìm kiếm sản phẩm...">
+                        <button id="btn-refresh-products" class="btn btn-secondary">Refresh</button>
+                    </div>
+                    <div class="table-container">
+                        <table id="products-table">
+                            <thead>
+                                <tr>
+                                    <th>Tên</th>
+                                    <th>Giá</th>
+                                    <th>Danh mục</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="products-tbody">
+                                <tr><td colspan="4" class="loading">Đang tải...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="sessions-section">
+                    <h2>Chat Sessions</h2>
+                    <div class="table-controls">
+                        <button id="btn-refresh-sessions" class="btn btn-secondary">Refresh</button>
+                    </div>
+                    <div class="table-container">
+                        <table id="sessions-table">
+                            <thead>
+                                <tr>
+                                    <th>Tiêu đề</th>
+                                    <th>Ngày tạo</th>
+                                    <th>Tin nhắn</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sessions-tbody">
+                                <tr><td colspan="4" class="loading">Đang tải...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <script src="/static/admin.js"></script>
+</body>
+</html>

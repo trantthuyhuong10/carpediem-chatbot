@@ -286,6 +286,9 @@ Kết quả tìm kiếm:
             return True
         return False
 
+    def get_session_id(self) -> str:
+        return self.session_id
+
     def get_stats(self):
         try:
             with self.rag.driver.session() as session:

@@ -190,10 +190,26 @@ class GraphRAG:
             r"\s+nào\s*$",
             r"\s+phù\s+hợp\s*$",
             r"\s+bán\s+chạy\s*$",
+            r"\s+có\s+giá\s+bao\s+nhiêu",
+            r"\s+giá\s+bao\s+nhiêu",
+            r"\s+giá\s+là\s+bao\s+nhiêu",
+            r"\s+rẻ\s+không",
+            r"\s+đắt\s+không",
+            r"\s+mua\s+ở\s+đâu",
+            r"\s+link\s+mua",
+            r"\s+review",
+            r"\s+đánh\s+giá",
         ]
         for pattern in filler_patterns:
             cleaned = re.sub(pattern, "", cleaned).strip()
         return cleaned if cleaned else query.lower()
+
+    def _format_price(self, price):
+        if price is None or price == 0:
+            return ""
+        if isinstance(price, str):
+            return price
+        return f"{price:,.0f}".replace(",", ".") + "₫"
 
     def neo4j_text_search(self, query, top_k=5):
         keywords = [w for w in query.lower().split() if len(w) >= 2]
@@ -221,6 +237,12 @@ class GraphRAG:
         for r in results:
             r["entities"] = [e for e in r.pop("raw_entities", []) if e.get("name")]
             r["score"] = r.pop("match_score", 0)
+            price = r.get("price")
+            if isinstance(price, (int, float)):
+                r["price"] = self._format_price(price)
+            original = r.get("original_price")
+            if isinstance(original, (int, float)):
+                r["original_price"] = self._format_price(original)
         return results
 
     def query(self, user_input, top_k=5, mode="auto"):
