@@ -50,9 +50,7 @@ class EmbeddingPipeline:
             metadata.append({
                 "name": p.get("name", ""),
                 "url": p.get("url", ""),
-                "original_price": p.get("original_price", ""),
                 "price": p.get("price", ""),
-                "discount": p.get("discount", ""),
                 "description": p.get("description", ""),
                 "images": p.get("images", []),
             })
