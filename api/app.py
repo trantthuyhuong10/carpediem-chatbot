@@ -17,6 +17,7 @@ load_dotenv()
 
 from src.chatbot import ChatBot
 from api.models import ChatRequest, ChatResponse, StatsResponse, HealthResponse, ProductResult, SessionInfo, MessageItem
+from fastapi.security import HTTPBearer
 from api.admin_routes import router as admin_router
 
 app = FastAPI(title="Carpediem", version="1.0.0")
@@ -36,6 +37,37 @@ if static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 app.include_router(admin_router)
+security = HTTPBearer()
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    
+    from fastapi.openapi.utils import get_openapi
+    openapi_schema = get_openapi(
+        title="Pipeline API",
+        version="1.0.0",
+        routes=app.routes,
+    )
+    
+    openapi_schema["components"]["securitySchemes"] = {
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer"
+        }
+    }
+    
+    # Auto-apply security to all /api/admin/* endpoints
+    for path, methods in openapi_schema["paths"].items():
+        if path.startswith("/api/admin") and path != "/api/admin/login":
+            for method in methods.values():
+                if isinstance(method, dict):
+                    method["security"] = [{"BearerAuth": []}]
+    
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
 
 @app.on_event("startup")
 async def startup():
