@@ -93,10 +93,9 @@ class CollectionsCrawler:
             os.makedirs("data/cache", exist_ok=True)
             with open("data/cache/collections.json", "w", encoding="utf-8") as f:
                 json.dump(self.collections, f, ensure_ascii=False, indent=2)
-            print(f"\nSaved {len(self.collections)} collections to data/cache/collections.json")
+            print(f"\nSaved {len(self.collections)} collections to data/cache/collection_details.json")
 
     def save_to_db(self, db_path=None):
-        """Save collections to SQLite database"""
         db = ProductDatabase(db_path=db_path)
         print(f"\nSaving {len(self.collections)} collections to database...")
         

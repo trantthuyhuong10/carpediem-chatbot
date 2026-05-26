@@ -48,10 +48,8 @@ class CollectionDetailsCrawler:
         return soup
 
     def extract_products(self, soup, collection_url):
-        """Extract product names and URLs from a collection page"""
         products = []
         
-        # Thử các selector phổ biến để tìm sản phẩm
         product_selectors = [
             ".product-item-detail-title a",     # từ static_crawling.py
             ".product-item a",                   # generic product item
@@ -72,7 +70,6 @@ class CollectionDetailsCrawler:
                         if not href or not text:
                             continue
                         
-                        # Nếu URL không bắt đầu bằng http, thêm domain
                         if not href.startswith("http"):
                             href = self.base_url + href if not href.startswith("/") else self.base_url + href
                         
@@ -81,13 +78,11 @@ class CollectionDetailsCrawler:
                             "url": href
                         }
                         
-                        # Tránh duplicates
                         if product_item not in products:
                             products.append(product_item)
                     except Exception:
                         continue
                 
-                # Nếu tìm được sản phẩm với selector này, dừng và trả về
                 if products:
                     break
         

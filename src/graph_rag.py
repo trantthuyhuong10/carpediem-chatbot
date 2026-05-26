@@ -15,7 +15,7 @@ class GraphRAG:
     def __init__(self, model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"):
         self.model = SentenceTransformer(model_name)
         self.index = faiss.read_index("data/embeddings/products.index")
-        with open("data/embeddings/products_metadata.json", "r", encoding="utf-8") as f:
+        with open("data/embeddings/metadata.json", "r", encoding="utf-8") as f:
             self.metadata = json.load(f)
         self.driver = GraphDatabase.driver(
             os.getenv("NEO4J_URI"), auth=(os.getenv("NEO4J_USER"), os.getenv("NEO4J_PASSWORD"))

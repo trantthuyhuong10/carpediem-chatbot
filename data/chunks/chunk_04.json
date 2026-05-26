@@ -1,122 +1,146 @@
 [
   {
-    "url": "https://carpediem.vn/nen-thom-du-mien",
-    "name": "Nến thơm Du Miên",
-    "price": "485.000₫",
-    "description": "NẾN THƠM DU MIÊN\nDu Miên là tinh hoa của Ylang Ylang, quấn quýt không gian tựa như sức hút của người phụ nữ được yêu thương. Mùi hương tựa như những giấc mơ lang thang, mang đến không giản của những giấc ngủ sâu trọn vẹn.\nMùi hương:Hương đầu: Cam Bergamot Hương giữa: Ylang Ylang, VanillaHương cuối: Đàn Hương\n\nCam kết tại Carpe Diem:\n\nNến thơm Carpe Diem được làm thủ công từ nguyên liệu an toàn gồm 80% sáp đậu nành, 20% sáp ong tự nhiên, không hoá chất độc hại, an toàn cho cả trẻ em và mẹ bầu.\nHũ nến sử dụng xi măng tái chế thân thiện môi trường, chịu nhiệt tốt.\nTinh dầu đạt chứng nhận an toàn VNTEST.",
-    "images": [
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127572.jpg?v=1775040761823",
-      "https://bizweb.dktcdn.net/100/627/977/products/8.png?v=1775040761823",
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127588.jpg?v=1775040761823",
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127586.jpg?v=1775040761823"
-    ]
-  },
-  {
-    "url": "https://carpediem.vn/nen-thom-hoai-an",
-    "name": "Nến thơm Hoài An",
-    "price": "485.000₫",
-    "description": "NẾN THƠM HOÀI AN\nHoài An là sự kết hợp dịu dàng giữa hương hoa đầu mùa và những tầng hương ấm áp. Sắc hương nhẹ nhàng của Hoa Anh Đào và Hoa Hồng hòa quyện cùng Hổ Phách trầm ấm, tạo nên cảm giác thư giãn, an yên cho những phút giây nghỉ ngơi của bạn. \nMùi hương:Hương đầu: Lê VàngHương giữa: Hoa Hồng, Hoa Anh ĐàoHương cuối: Hổ Phách\n\nCam kết tại Carpe Diem:\n\nNến thơm Carpe Diem được làm thủ công từ nguyên liệu an toàn gồm 80% sáp đậu nành, 20% sáp ong tự nhiên, không hoá chất độc hại, an toàn cho cả trẻ em và mẹ bầu.\nHũ nến sử dụng xi măng tái chế thân thiện môi trường, chịu nhiệt tốt.\nTinh dầu đạt chứng nhận an toàn VNTEST.",
-    "images": [
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127561.jpg?v=1775040787100",
-      "https://bizweb.dktcdn.net/100/627/977/products/11.png?v=1775040806147",
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127567.jpg?v=1775040806147",
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127570.jpg?v=1775040806147"
-    ]
-  },
-  {
-    "url": "https://carpediem.vn/nen-thom-linh-sam",
-    "name": "Nến thơm Linh Sam",
-    "price": "485.000₫",
-    "description": "NẾN THƠM LINH SAM\nLinh Sam là bản giao hưởng dịu dàng của cam bergamot ngọt ngào và gỗ bách nhật thư thái, khẽ lan tỏa, xua tan giá lạnh, đem đến cảm giác an yên và ấm cúng cho không gian của bạn.\nMùi hương:Hương đầu: Cam Bergamot, Vân SamHương giữa: Bách Nhật, Xô Thơm Hương cuối: Gỗ Trắc Xanh, Xạ Hương Đen, Hoắc Hương\n\nCam kết tại Carpe Diem:\n\nNến thơm Carpe Diem được làm thủ công từ nguyên liệu an toàn gồm 80% sáp đậu nành, 20% sáp ong tự nhiên, không hoá chất độc hại, an toàn cho cả trẻ em và mẹ bầu.\nHũ nến sử dụng xi măng tái chế thân thiện môi trường, chịu nhiệt tốt.\nTinh dầu đạt chứng nhận an toàn VNTEST.",
-    "images": [
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127610.jpg?v=1775040851780",
-      "https://bizweb.dktcdn.net/100/627/977/products/9.png?v=1775040851780",
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127611.jpg?v=1775040840423",
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127612.jpg?v=1775040842997"
-    ]
-  },
-  {
-    "url": "https://carpediem.vn/nen-thom-mong-chieu-xuan",
-    "name": "Nến thơm Mộng Chiều Xuân",
-    "price": "485.000₫",
-    "description": "NẾN THƠM MỘNG CHIỀU XUÂN\nMộng Chiều Xuân là sự kết hợp giữa hương cỏ non dịu mát và sắc hoa tinh khôi. Nốt hương tươi mới từ hoa cúc, thùa ngọt và lô hội gợi mở cảm giác thư giãn, nhẹ bẫng như một buổi chiều mùa xuân đầy nắng ấm và gió mát.\nMùi hương:Hương đầu: Lô HộiHương giữa: Hoa Cúc, Hoắc HươngHương cuối: Thùa Ngọt\n\nCam kết tại Carpe Diem:\n\nNến thơm Carpe Diem được làm thủ công từ nguyên liệu an toàn gồm 80% sáp đậu nành, 20% sáp ong tự nhiên, không hoá chất độc hại, an toàn cho cả trẻ em và mẹ bầu.\nHũ nến sử dụng xi măng tái chế thân thiện môi trường, chịu nhiệt tốt.\nTinh dầu đạt chứng nhận an toàn VNTEST.",
-    "images": [
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127572-878ec8be-5f7d-457c-bf21-40932d7cdb54.jpg?v=1775041117667",
-      "https://bizweb.dktcdn.net/100/627/977/products/2.png?v=1775041117667",
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127575.jpg?v=1775041059253",
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127578.jpg?v=1775041059253"
-    ]
-  },
-  {
-    "url": "https://carpediem.vn/nen-thom-mong-mo",
-    "name": "Nến thơm Mọng Mơ",
-    "price": "485.000₫",
-    "description": "NẾN THƠM MỌNG MƠ\nMọng Mơ là sự kết hợp tươi mát từ lựu đỏ mọng và nam việt quất thanh lành, mang đến cảm giác sảng khoái của những ngày hè đầy nắng. Mỗi tầng hương nhẹ nhàng nhưng đầy thú vị, không ngọt gắt mà tinh tế như chính trái tim mùa hè.\nMùi hương:Hương đầu: Vỏ ChanhHương giữa: LựuHương cuối: Việt Quất\n\nCam kết tại Carpe Diem:\n\nNến thơm Carpe Diem được làm thủ công từ nguyên liệu an toàn gồm 80% sáp đậu nành, 20% sáp ong tự nhiên, không hoá chất độc hại, an toàn cho cả trẻ em và mẹ bầu.\nHũ nến sử dụng xi măng tái chế thân thiện môi trường, chịu nhiệt tốt.\nTinh dầu đạt chứng nhận an toàn VNTEST.",
-    "images": [
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127603.jpg?v=1775041103680",
-      "https://bizweb.dktcdn.net/100/627/977/products/12.png?v=1775041103680",
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127604.jpg?v=1775041091543",
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127605.jpg?v=1775041094277"
-    ]
-  },
-  {
-    "url": "https://carpediem.vn/nen-thom-ngu-ngon",
-    "name": "Nến thơm Ngủ Ngon",
-    "price": "485.000₫",
-    "description": "NẾN THƠM NGỦ NGON\nNgủ Ngon là sự kết hợp xạ hương và gỗ đàn hương mang đến sự tươi mát cân bằng cho bất kỳ không gian nào, khẳng định là hương thơm lí tưởng sau một ngày làm việc mệt mỏi, đưa bạn vào những giấc ngủ ngon.\nMùi hương:Hương đầu: PetitgrainHương giữa: Bạch Đậu Khấu, Xạ HươngHương cuối: Hổ Phách, Đàn Hương \n\nCam kết tại Carpe Diem:\n\nNến thơm Carpe Diem được làm thủ công từ nguyên liệu an toàn gồm 80% sáp đậu nành, 20% sáp ong tự nhiên, không hoá chất độc hại, an toàn cho cả trẻ em và mẹ bầu.\nHũ nến sử dụng xi măng tái chế thân thiện môi trường, chịu nhiệt tốt.\nTinh dầu đạt chứng nhận an toàn VNTEST.",
-    "images": [
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127556-7e783376-7d7c-4894-a667-fa81ece37f85.jpg?v=1775041139717",
-      "https://bizweb.dktcdn.net/100/627/977/products/4.png?v=1775041194587",
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127593.jpg?v=1775041194587",
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127595.jpg?v=1775041194587"
-    ]
-  },
-  {
-    "url": "https://carpediem.vn/nen-thom-ruou-tinh",
-    "name": "Nến thơm Rượu Tình",
-    "price": "485.000₫",
-    "description": "NẾN THƠM RƯỢU TÌNH\nRượu Tình là sự hòa quyện của gin thực vật cùng gỗ balsam, sồi và tuyết tùng, mang đến cảm giác ấm áp, vấn vương khó diễn tả thành lời. \nMùi hương:Hương đầu: Bách Xù Hương giữa: Rượu Gin, Nho ĐỏHương cuối: Tuyết Tùng\n\nCam kết tại Carpe Diem:\n\nNến thơm Carpe Diem được làm thủ công từ nguyên liệu an toàn gồm 80% sáp đậu nành, 20% sáp ong tự nhiên, không hoá chất độc hại, an toàn cho cả trẻ em và mẹ bầu.\nHũ nến sử dụng xi măng tái chế thân thiện môi trường, chịu nhiệt tốt.\nTinh dầu đạt chứng nhận an toàn IFRA và RIFM.",
-    "images": [
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127579.jpg?v=1775041232407",
-      "https://bizweb.dktcdn.net/100/627/977/products/7.png?v=1775041232407",
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127584.jpg?v=1775041226687",
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127585.jpg?v=1775041229143"
-    ]
-  },
-  {
-    "url": "https://carpediem.vn/nen-thom-than-mat",
-    "name": "Nến thơm Thân Mật",
-    "price": "485.000₫",
+    "collection_id": "other-products",
+    "collection_name": "Sản phẩm khác",
+    "collection_url": null,
+    "name": "Nến thơm Mini Bowl - Đen",
+    "url": "https://carpediem.vn/nen-thom-mini-bowl-den",
+    "price": "265.000₫",
     "description": "NẾN THƠM THÂN MẬT\nAlléchant là sự hòa quyện đầy tinh tế giữa gỗ sồi ấm áp và hổ phách quyến rũ, điểm xuyết chút thảo mộc dịu dàng từ oải hương và vỏ cam tươi sáng. Đây chính là lựa chọn lý tưởng để làm dịu những khoảng trống và tạo nên không khí gần gũi, ấm áp cho những buổi hẹn hò đáng nhớ.\nMùi hương:Hương đầu: Cam, BưởiHương giữa: Oải HươngHương cuối: Hổ Phách, Rêu Sồi\n\nCam kết tại Carpe Diem:\n\nNến thơm Carpe Diem được làm thủ công từ nguyên liệu an toàn gồm 80% sáp đậu nành, 20% sáp ong tự nhiên, không hoá chất độc hại, an toàn cho cả trẻ em và mẹ bầu.\nHũ nến sử dụng xi măng tái chế thân thiện môi trường, chịu nhiệt tốt.\nTinh dầu đạt chứng nhận an toàn VNTEST.",
     "images": [
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127579-64d6e73d-4d98-4320-8142-c654cd59ea87.jpg?v=1775041249213",
-      "https://bizweb.dktcdn.net/100/627/977/products/1.png?v=1775041283487",
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127582.jpg?v=1775041283487",
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127583.jpg?v=1775041283487"
-    ]
+      "https://bizweb.dktcdn.net/100/627/977/products/r0128277.jpg?v=1775040242830",
+      "https://bizweb.dktcdn.net/100/627/977/products/13.png?v=1775040254357"
+    ],
+    "status": "orphan"
   },
   {
-    "url": "https://carpediem.vn/nen-thom-thuong-ngan",
-    "name": "Nến thơm Thượng Ngàn",
-    "price": "485.000₫",
-    "description": "NẾN THƠM THƯỢNG NGÀN\n“Thượng” là nơi núi cao, “Ngàn” là miền rừng xanh thẳm. Từ hương cỏ rừng hoang dại, rêu và cam quýt, nến thơm Thượng Ngàn mang đến cảm giác tươi mát, nguyên bản như vừa tìm thấy giữa sương sớm. Nến thơm Thượng Ngàn là phiên bản nến thơm thủ công đặc biệt, thuộc BST Cô Đôi Thượng Ngàn phát triển bởi Carpe Diem.\nMùi hương:Hương đầu: Cam quýtHương giữa: Cỏ cắtHương cuối: Rêu, Xô Thơm \nCam kết tại Carpe Diem:\n\nNến thơm Carpe Diem được làm thủ công từ nguyên liệu an toàn gồm 80% sáp đậu nành, 20% sáp ong tự nhiên, không hoá chất độc hại, an toàn cho cả trẻ em và mẹ bầu.\nHũ nến sử dụng xi măng tái chế thân thiện môi trường, chịu nhiệt tốt.\nTinh dầu đạt chứng nhận an toàn VNTEST.",
-    "images": [
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127607.jpg?v=1775041325380",
-      "https://bizweb.dktcdn.net/100/627/977/products/10.png?v=1775041325380",
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127608.jpg?v=1775041315973",
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127609.jpg?v=1775041318523"
-    ]
-  },
-  {
-    "url": "https://carpediem.vn/nen-thom-van-sam",
-    "name": "Nến thơm Vân Sam",
-    "price": "485.000₫",
+    "collection_id": "other-products",
+    "collection_name": "Sản phẩm khác",
+    "collection_url": null,
+    "name": "Nến thơm Mini Bowl - Đỏ",
+    "url": "https://carpediem.vn/nen-thom-mini-bowl-do",
+    "price": "265.000₫",
     "description": "NẾN THƠM VÂN SAM\nVân Sam là hương thơm gỗ ấm mùa đông từ Bạch Đàn, Thông Tuyết nhẹ nhàng lan tỏa khắp không gian, mang đến một cảm giác thư giãn, sảng khoái len lỏi, giúp những khoảnh khắc thảnh thơi thêm trọn vẹn.\nMùi hương:Hương đầu: Bạch ĐànHương giữa: Vân SamHương cuối: Thông Tuyết \n\nCam kết tại Carpe Diem:\n\nNến thơm Carpe Diem được làm thủ công từ nguyên liệu an toàn gồm 80% sáp đậu nành, 20% sáp ong tự nhiên, không hoá chất độc hại, an toàn cho cả trẻ em và mẹ bầu.\nHũ nến sử dụng xi măng tái chế thân thiện môi trường, chịu nhiệt tốt.\nTinh dầu đạt chứng nhận an toàn VNTEST.",
     "images": [
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127613.jpg?v=1775041370153",
-      "https://bizweb.dktcdn.net/100/627/977/products/5.png?v=1775041370153",
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127614.jpg?v=1775041361320",
-      "https://bizweb.dktcdn.net/100/627/977/products/r0127615.jpg?v=1775041364050"
-    ]
+      "https://bizweb.dktcdn.net/100/627/977/products/r0128260.jpg?v=1775040309747",
+      "https://bizweb.dktcdn.net/100/627/977/products/16.png?v=1775040309747"
+    ],
+    "status": "orphan"
+  },
+  {
+    "collection_id": "other-products",
+    "collection_name": "Sản phẩm khác",
+    "collection_url": null,
+    "name": "Nến thơm Mini Bowl - Hồng",
+    "url": "https://carpediem.vn/nen-thom-mini-bowl-hong",
+    "price": "265.000₫",
+    "description": "NẾN THƠM MỌNG MƠ\nMọng Mơ là sự kết hợp tươi mát từ lựu đỏ mọng và nam việt quất thanh lành, mang đến cảm giác sảng khoái của những ngày hè đầy nắng. Mỗi tầng hương nhẹ nhàng nhưng đầy thú vị, không ngọt gắt mà tinh tế như chính trái tim mùa hè.\nMùi hương:Hương đầu: Vỏ ChanhHương giữa: LựuHương cuối: Việt Quất\n\nCam kết tại Carpe Diem:\n\nNến thơm Carpe Diem được làm thủ công từ nguyên liệu an toàn gồm 80% sáp đậu nành, 20% sáp ong tự nhiên, không hoá chất độc hại, an toàn cho cả trẻ em và mẹ bầu.\nHũ nến sử dụng xi măng tái chế thân thiện môi trường, chịu nhiệt tốt.\nTinh dầu đạt chứng nhận an toàn VNTEST.",
+    "images": [
+      "https://bizweb.dktcdn.net/100/627/977/products/r0128268.jpg?v=1775040322733",
+      "https://bizweb.dktcdn.net/100/627/977/products/21.png?v=1775040338153"
+    ],
+    "status": "orphan"
+  },
+  {
+    "collection_id": "other-products",
+    "collection_name": "Sản phẩm khác",
+    "collection_url": null,
+    "name": "Nến thơm Mini Bowl - Nâu",
+    "url": "https://carpediem.vn/nen-thom-mini-bowl-nau",
+    "price": "265.000₫",
+    "description": "NẾN THƠM PHÙNG VY\nPhùng Vy là khoảnh khắc tương phùng giữa những điều nhỏ bé, nơi Hương Hoa Xanh và Làn Gió Ozone khẽ chạm nhau trong buổi sớm lành lạnh cuối năm. Khi Hoa Nhài khẽ lan trong không khí, một cảm giác thân quen và an yên dần bao phủ. Trên nền Gỗ và Xạ Hương ấm, hơi thở của Phùng Vy khép lại bằng dư âm dịu êm như một cuộc gặp gỡ chậm rãi, nhưng đủ để lưu lại thật lâu.\nMùi hương:Hương đầu: Hoa XanhHương giữa: Hoa NhàiHương cuối: Xạ Hương\n\nCam kết tại Carpe Diem:\n\nNến thơm Carpe Diem được làm thủ công từ nguyên liệu an toàn gồm 80% sáp đậu nành, 20% sáp ong tự nhiên, không hoá chất độc hại, an toàn cho cả trẻ em và mẹ bầu.\nHũ nến sử dụng xi măng tái chế thân thiện môi trường, chịu nhiệt tốt.\nTinh dầu đạt chứng nhận an toàn VNTEST.",
+    "images": [
+      "https://bizweb.dktcdn.net/100/627/977/products/r0134815.jpg?v=1775040388733",
+      "https://bizweb.dktcdn.net/100/627/977/products/44.png?v=1775040388733"
+    ],
+    "status": "orphan"
+  },
+  {
+    "collection_id": "other-products",
+    "collection_name": "Sản phẩm khác",
+    "collection_url": null,
+    "name": "Nến thơm Mini Bowl - Tím",
+    "url": "https://carpediem.vn/nen-thom-mini-bowl-tim",
+    "price": "265.000₫",
+    "description": "NẾN THƠM HOÀI AN\nHoài An là sự kết hợp dịu dàng giữa hương hoa đầu mùa và những tầng hương ấm áp. Sắc hương nhẹ nhàng của Hoa Anh Đào và Hoa Hồng hòa quyện cùng Hổ Phách trầm ấm, tạo nên cảm giác thư giãn, an yên cho những phút giây nghỉ ngơi của bạn. \nMùi hương:Hương đầu: Lê VàngHương giữa: Hoa Hồng, Hoa Anh ĐàoHương cuối: Hổ Phách\n\nCam kết tại Carpe Diem:\n\nNến thơm Carpe Diem được làm thủ công từ nguyên liệu an toàn gồm 80% sáp đậu nành, 20% sáp ong tự nhiên, không hoá chất độc hại, an toàn cho cả trẻ em và mẹ bầu.\nHũ nến sử dụng xi măng tái chế thân thiện môi trường, chịu nhiệt tốt.\nTinh dầu đạt chứng nhận an toàn VNTEST.",
+    "images": [
+      "https://bizweb.dktcdn.net/100/627/977/products/r0128264.jpg?v=1775040467787",
+      "https://bizweb.dktcdn.net/100/627/977/products/20.png?v=1775040467787"
+    ],
+    "status": "orphan"
+  },
+  {
+    "collection_id": "other-products",
+    "collection_name": "Sản phẩm khác",
+    "collection_url": null,
+    "name": "Nến thơm Mini Bowl - Trắng",
+    "url": "https://carpediem.vn/nen-thom-mini-bowl-trang",
+    "price": "265.000₫",
+    "description": "NẾN THƠM MỘNG CHIỀU XUÂN\nMộng Chiều Xuân là sự kết hợp giữa hương cỏ non dịu mát và sắc hoa tinh khôi. Nốt hương tươi mới từ hoa cúc, thùa ngọt và lô hội gợi mở cảm giác thư giãn, nhẹ bẫng như một buổi chiều mùa xuân đầy nắng ấm và gió mát.\nMùi hương:Hương đầu: Lô HộiHương giữa: Hoa Cúc, Hoắc HươngHương cuối: Thùa Ngọt\n\nCam kết tại Carpe Diem:\n\nNến thơm Carpe Diem được làm thủ công từ nguyên liệu an toàn gồm 80% sáp đậu nành, 20% sáp ong tự nhiên, không hoá chất độc hại, an toàn cho cả trẻ em và mẹ bầu.\nHũ nến sử dụng xi măng tái chế thân thiện môi trường, chịu nhiệt tốt.\nTinh dầu đạt chứng nhận an toàn VNTEST.",
+    "images": [
+      "https://bizweb.dktcdn.net/100/627/977/products/r0128275.jpg?v=1775040480807",
+      "https://bizweb.dktcdn.net/100/627/977/products/14.png?v=1775040490707"
+    ],
+    "status": "orphan"
+  },
+  {
+    "collection_id": "other-products",
+    "collection_name": "Sản phẩm khác",
+    "collection_url": null,
+    "name": "Nến thơm Mini Bowl - Vàng",
+    "url": "https://carpediem.vn/nen-thom-mini-bowl-vang",
+    "price": "265.000₫",
+    "description": "NẾN THƠM CHÚM CHÍM\nChúm Chím là sự kết hợp hài hòa giữa hương dưa gang mát lạnh, dâu tây và vanilla ngọt ngào, điểm xuyết thêm chút tươi sáng từ cam bergamot. Một lựa chọn lý tưởng để mang lại cảm giác dịu mát, ngọt ngào và dễ chịu tựa như trái cây chín vụ.Mùi hương:Hương đầu: Dưa LeoHương giữa: Dưa Gang, Dâu TâyHương cuối: Vanilla\n\nCam kết tại Carpe Diem:\n\nNến thơm Carpe Diem được làm thủ công từ nguyên liệu an toàn gồm 80% sáp đậu nành, 20% sáp ong tự nhiên, không hoá chất độc hại, an toàn cho cả trẻ em và mẹ bầu.\nHũ nến sử dụng xi măng tái chế thân thiện môi trường, chịu nhiệt tốt.\nTinh dầu đạt chứng nhận an toàn VNTEST.",
+    "images": [
+      "https://bizweb.dktcdn.net/100/627/977/products/r0128283.jpg?v=1775040538587",
+      "https://bizweb.dktcdn.net/100/627/977/products/17.png?v=1775040538587"
+    ],
+    "status": "orphan"
+  },
+  {
+    "collection_id": "other-products",
+    "collection_name": "Sản phẩm khác",
+    "collection_url": null,
+    "name": "Nến thơm Mini Bowl - Xám",
+    "url": "https://carpediem.vn/nen-thom-mini-bowl-xam",
+    "price": "265.000₫",
+    "description": "NẾN THƠM BIỂN MƠ\nBiển Mơ mang theo hương thơm dịu nhẹ của hoa ban sớm cùng cảm giác tươi mát gợi nhớ biển xanh, cát trắng. Mở đầu bằng lớp hương mát lành từ muối biển, cân bằng tinh tế với hoa Phong Lan, hoa Nhài và đậu Tonka, mang đến không gian trong trẻo, dễ chịu.\nMùi hương:Hương đầu: Muối BiểnHương giữa: Hoa Nhài, Hoa Phong Lan Hương cuối: Đậu Tonka \n\nCam kết tại Carpe Diem:\n\nNến thơm Carpe Diem được làm thủ công từ nguyên liệu an toàn gồm 80% sáp đậu nành, 20% sáp ong tự nhiên, không hoá chất độc hại, an toàn cho cả trẻ em và mẹ bầu.\nHũ nến sử dụng xi măng tái chế thân thiện môi trường, chịu nhiệt tốt.\nTinh dầu đạt chứng nhận an toàn VNTEST.",
+    "images": [
+      "https://bizweb.dktcdn.net/100/627/977/products/r0128280.jpg?v=1775040552240",
+      "https://bizweb.dktcdn.net/100/627/977/products/15.png?v=1775040569423"
+    ],
+    "status": "orphan"
+  },
+  {
+    "collection_id": "other-products",
+    "collection_name": "Sản phẩm khác",
+    "collection_url": null,
+    "name": "Nến thơm Biển Mơ",
+    "url": "https://carpediem.vn/nen-thom-bien-mo",
+    "price": "485.000₫",
+    "description": "NẾN THƠM BIỂN MƠ\nBiển Mơ mang theo hương thơm dịu nhẹ của hoa ban sớm cùng cảm giác tươi mát gợi nhớ biển xanh, cát trắng. Mở đầu bằng lớp hương mát lành từ muối biển, cân bằng tinh tế với hoa Phong Lan, hoa Nhài và đậu Tonka, mang đến không gian trong trẻo, dễ chịu.\nMùi hương:Hương đầu: Muối BiểnHương giữa: Hoa Nhài, Hoa Phong Lan Hương cuối: Đậu Tonka \n\nCam kết tại Carpe Diem:\n\nNến thơm Carpe Diem được làm thủ công từ nguyên liệu an toàn gồm 80% sáp đậu nành, 20% sáp ong tự nhiên, không hoá chất độc hại, an toàn cho cả trẻ em và mẹ bầu.\nHũ nến sử dụng xi măng tái chế thân thiện môi trường, chịu nhiệt tốt.\nTinh dầu đạt chứng nhận an toàn VNTEST.",
+    "images": [
+      "https://bizweb.dktcdn.net/100/627/977/products/r0127556.jpg?v=1775040665063",
+      "https://bizweb.dktcdn.net/100/627/977/products/3.png?v=1775040665063",
+      "https://bizweb.dktcdn.net/100/627/977/products/r0127560.jpg?v=1775040665063",
+      "https://bizweb.dktcdn.net/100/627/977/products/r0127559.jpg?v=1775040665063"
+    ],
+    "status": "orphan"
+  },
+  {
+    "collection_id": "other-products",
+    "collection_name": "Sản phẩm khác",
+    "collection_url": null,
+    "name": "Nến thơm Chúm Chím",
+    "url": "https://carpediem.vn/nen-thom-chum-chim",
+    "price": "485.000₫",
+    "description": "NẾN THƠM CHÚM CHÍM\nChúm Chím là sự kết hợp hài hòa giữa hương dưa gang mát lạnh, dâu tây và vanilla ngọt ngào, điểm xuyết thêm chút tươi sáng từ cam bergamot. Một lựa chọn lý tưởng để mang lại cảm giác dịu mát, ngọt ngào và dễ chịu tựa như trái cây chín vụ.Mùi hương:Hương đầu: Dưa LeoHương giữa: Dưa Gang, Dâu TâyHương cuối: Vanilla\n\nCam kết tại Carpe Diem:\n\nNến thơm Carpe Diem được làm thủ công từ nguyên liệu an toàn gồm 80% sáp đậu nành, 20% sáp ong tự nhiên, không hoá chất độc hại, an toàn cho cả trẻ em và mẹ bầu.\nHũ nến sử dụng xi măng tái chế thân thiện môi trường, chịu nhiệt tốt.\nTinh dầu đạt chứng nhận an toàn VNTEST.",
+    "images": [
+      "https://bizweb.dktcdn.net/100/627/977/products/r0127597.jpg?v=1775040689890",
+      "https://bizweb.dktcdn.net/100/627/977/products/6.png?v=1775040713023",
+      "https://bizweb.dktcdn.net/100/627/977/products/r0127598.jpg?v=1775040713023",
+      "https://bizweb.dktcdn.net/100/627/977/products/r0127602.jpg?v=1775040713023"
+    ],
+    "status": "orphan"
   }
 ]
