@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import time
 import json
 import os
+from crawl.product_db import ProductDatabase
 
 class DetailCrawler:
     def __init__(self):
@@ -102,6 +103,11 @@ class DetailCrawler:
         with open(filepath, "w", encoding="utf-8") as f:
             json.dump(self.products_details, f, ensure_ascii=False, indent=2)
 
+    def save_db(self, db_path: str = None):
+        db = ProductDatabase(db_path=db_path)
+        db.load_items(self.products_details)
+        db.close()
+
 if __name__ == "__main__":
     crawler = DetailCrawler()
 
@@ -110,3 +116,4 @@ if __name__ == "__main__":
     crawler.crawl_details(products)
 
     crawler.save_json("data/cache/product_details.json")
+    crawler.save_db()

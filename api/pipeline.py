@@ -10,6 +10,7 @@ sys.path.insert(0, project_root)
 
 from crawl.static_crawling import Crawler
 from crawl.static_crawling_details import DetailCrawler
+from crawl.product_db import ProductDatabase
 from processing.chunking import DataChunker
 from processing.embedding import EmbeddingPipeline
 
@@ -67,6 +68,9 @@ def run_crawl_details(max_products: int = None) -> dict:
         crawler = DetailCrawler()
         crawler.crawl_details(products, max_products=max_products)
         crawler.save_json("data/cache/product_details.json")
+        db = ProductDatabase()
+        db.load_items(crawler.products_details)
+        db.close()
 
         with open("data/cache/product_details.json", "r", encoding="utf-8") as f:
             details = json.load(f)
