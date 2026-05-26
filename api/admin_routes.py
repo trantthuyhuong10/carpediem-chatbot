@@ -51,21 +51,15 @@ async def trigger_crawl_details(request_data: PipelineRequest, request: Request)
 async def trigger_chunking(request_data: PipelineRequest, request: Request):
     await require_auth(request)
     
-    # Debug: in ra status hiện tại
     current_status = pipeline.get_status()
-    print(f"🔍 Current pipeline status: {current_status}")
     
     running_pipelines = [name for name, s in current_status.items() if s["running"]]
-    print(f"🔍 Running pipelines: {running_pipelines}")
     
     if any(s["running"] for s in current_status.values()):
-        print(f"❌ Cannot start chunking, pipelines running: {running_pipelines}")
         raise HTTPException(
             status_code=400, 
-            detail=f"Đang có pipeline khác đang chạy: {', '.join(running_pipelines)}"
         )
     
-    print(f"✅ Starting chunking with batch_size={request_data.batch_size}")
     return pipeline.run_pipeline_async("chunking", batch_size=request_data.batch_size)
 
 @router.post("/embed")

@@ -1,18 +1,48 @@
 [
   {
-    "url": "https://carpediem.vn/tinh-dau-nuoc-hoa-nho-giot-10ml",
-    "name": "Tinh dầu nước hoa nhỏ giọt - 10ml",
-    "price": "250.000₫",
-    "description": "Tinh dầu nhỏ giọt là tinh dầu nước hoa đậm đặc, mang hương thơm vào trong không gian một cách linh hoạt, tiết kiệm và tinh tế.\n\nDung tích: 10ml\nThời gian: 3-6 tháng\n\nCam kết tại Carpe Diem:\n\nNến thơm Carpe Diem được làm thủ công từ nguyên liệu an toàn gồm 80% sáp đậu nành, 20% sáp ong tự nhiên, không hoá chất độc hại, an toàn cho cả trẻ em và mẹ bầu.\nHũ nến sử dụng xi măng tái chế thân thiện môi trường, chịu nhiệt tốt.\nTinh dầu đạt chứng nhận an toàn VNTEST.",
+    "collection_id": "other-products",
+    "collection_name": "Sản phẩm khác",
+    "collection_url": null,
+    "name": "Khăn lụa Bandana",
+    "url": "https://carpediem.vn/khan-lua-bandana",
+    "price": "325.000₫",
+    "description": "Từ thớ lụa vân xước mềm mại như dòng chảy tự nhiên, Carpe Diem phát triển khăn lụa bandana mới, tựa như những lát cắt của vẻ đẹp bình yên và bền bỉ.\n\nThu Cốc mang sắc vàng của mùa gặt trọn vẹn, gợi cảm giác trù phú và niềm vui no đủ.\nHạ Vy dịu dàng như đóa sen giữa hồ, vẫn kiên định tỏa hương trong nắng hạ.\nXuân Thì được tạo nên như một biểu tượng của sự an lành và tinh tế - nơi vẻ đẹp hiện diện trong sự cân bằng và tự tại.\n\nSize: 60x60cm\nChất liệu: Lụa vân xước",
     "images": [
-      "https://bizweb.dktcdn.net/100/627/977/products/thie-t-ke-chu-a-co-te-n.png?v=1775043946893",
-      "https://bizweb.dktcdn.net/100/627/977/products/28.png?v=1775043958833",
-      "https://bizweb.dktcdn.net/100/627/977/products/29.png?v=1775043961310",
-      "https://bizweb.dktcdn.net/100/627/977/products/30.png?v=1775043963830",
-      "https://bizweb.dktcdn.net/100/627/977/products/31.png?v=1775043972487",
-      "https://bizweb.dktcdn.net/100/627/977/products/32.png?v=1775043975203",
-      "https://bizweb.dktcdn.net/100/627/977/products/33.png?v=1775043977430",
-      "https://bizweb.dktcdn.net/100/627/977/products/34.png?v=1775043979900"
-    ]
+      "https://bizweb.dktcdn.net/100/627/977/products/3-588b7fe5-0376-4f8c-b4a7-f1ae152db37a.png?v=1775044913300",
+      "https://bizweb.dktcdn.net/100/627/977/products/123.png?v=1775044913300",
+      "https://bizweb.dktcdn.net/100/627/977/products/129.png?v=1775044913300",
+      "https://bizweb.dktcdn.net/100/627/977/products/2-0ef93213-1aad-4344-b95f-329b0bc9f2b2.png?v=1775044913300",
+      "https://bizweb.dktcdn.net/100/627/977/products/7-dee6cca8-afc4-41a0-b600-5d77476a5eef.png?v=1775044913300",
+      "https://bizweb.dktcdn.net/100/627/977/products/5-5bb6dad6-3d2a-4850-9857-b6e1deb535c0.png?v=1775044607517",
+      "https://bizweb.dktcdn.net/100/627/977/products/4-8af2ac76-476c-430a-9e87-3794f5dbc908.png?v=1775044913300",
+      "https://bizweb.dktcdn.net/100/627/977/products/6-dae06670-824c-40b4-91bf-8b67640105c3.png?v=1775044913300"
+    ],
+    "status": "orphan"
+  },
+  {
+    "collection_id": "other-products",
+    "collection_name": "Sản phẩm khác",
+    "collection_url": null,
+    "name": "Hũ đựng đá thơm",
+    "url": "https://carpediem.vn/hu-dung-da-mini",
+    "price": "110.000₫",
+    "description": "Hũ đựng đá xi măng giữ đá thơm và hỗ trợ hương lan toả nhẹ nhàng, ổn định trong không gian.\nChất liệu: xi măng thủ công\nCam kết tại Carpe Diem:\n\nNến thơm Carpe Diem được làm thủ công từ nguyên liệu an toàn gồm 80% sáp đậu nành, 20% sáp ong tự nhiên, không hoá chất độc hại, an toàn cho cả trẻ em và mẹ bầu.\nHũ nến sử dụng xi măng tái chế thân thiện môi trường, chịu nhiệt tốt.\nTinh dầu đạt chứng nhận an toàn VNTEST.",
+    "images": [
+      "https://bizweb.dktcdn.net/100/627/977/products/e28231cb-a4f9-48a9-b2a1-f6d8c6d485be.png?v=1767170637450"
+    ],
+    "status": "orphan"
+  },
+  {
+    "collection_id": "other-products",
+    "collection_name": "Sản phẩm khác",
+    "collection_url": null,
+    "name": "Đá Nham Thạch",
+    "url": "https://carpediem.vn/da-nham-thach",
+    "price": "270.000₫",
+    "description": "Đá nham thạch là dòng đá tự nhiên có khả năng ủ hương tinh dầu và lan toả mùi hương nhẹ nhàng, bền bỉ trong không gian.\nCam kết tại Carpe Diem:\n\nNến thơm Carpe Diem được làm thủ công từ nguyên liệu an toàn gồm 80% sáp đậu nành, 20% sáp ong tự nhiên, không hoá chất độc hại, an toàn cho cả trẻ em và mẹ bầu.\nHũ nến sử dụng xi măng tái chế thân thiện môi trường, chịu nhiệt tốt.\nTinh dầu đạt chứng nhận an toàn VNTEST.",
+    "images": [
+      "https://bizweb.dktcdn.net/100/627/977/products/9f82a06a-7349-4f91-a08d-e9ac6018c02a.jpg?v=1767170025257"
+    ],
+    "status": "orphan"
   }
 ]

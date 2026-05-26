@@ -44,15 +44,15 @@ class Neo4jGraphBuilder:
             ]:
                 s.run(c)
 
-    def create_product_node(self, product_id, name, url, price=None, original_price=None, discount=None, description=None, images=None):
+    def create_product_node(self, product_id, name, url, price=None, description=None, images=None):
         with self.driver.session() as s:
             return s.run("""
                 MERGE (p:Product {id: $id})
-                SET p.name=$name, p.url=$url, p.price=$price, p.original_price=$original_price,
-                    p.discount=$discount, p.description=$description, p.images=$images, p.updated_at=datetime()
+                SET p.name=$name, p.url=$url, p.price=$price,
+                    p.description=$description, p.images=$images, p.updated_at=datetime()
                 RETURN p
-            """, id=product_id, name=name, url=url, price=price, original_price=original_price,
-                discount=discount, description=description, images=images or []).single()["p"]
+            """, id=product_id, name=name, url=url, price=price, 
+                 description=description, images=images or []).single()["p"]
 
     def create_category_node(self, name):
         with self.driver.session() as s:
@@ -152,37 +152,102 @@ class Neo4jGraphBuilder:
     def load_products_from_json(self, filepath, collection_name="all"):
         with open(filepath, "r", encoding="utf-8") as f:
             products = json.load(f)
-        self.create_collection_node(collection_name)
+        products = []
+        if isinstance(raw, dict):
+            for coll_name, items in raw.items():
+                self.create_collection_node(coll_name)
+                for item in items:
+                    item["collection_name"] = coll_name
+                    products.append(item)
+        else:
+            products = raw
+            self.create_collection_node(collection_name)
+        
         for idx, product in enumerate(products):
+
             pid = f"product_{idx}"
-            price = self._parse_price(product.get("price"))
-            self.create_product_node(
-                pid, product.get("name", ""), product.get("url", ""),
-                price, product.get("original_price"), product.get("discount"),
-                product.get("description"), product.get("images", [])
+
+            price = self._parse_price(
+                product.get("price")
             )
-            self.link_product_to_collection(pid, collection_name)
-            cat = product.get("category") or self._extract_category(product)
+
+            self.create_product_node(
+                pid,
+                product.get("name", ""),
+                product.get("url", ""),
+                price,
+                product.get("description"),
+                product.get("images", [])
+            )
+
+            coll = product.get(
+                "collection_name",
+                collection_name
+            )
+
+            self.link_product_to_collection(
+                pid,
+                coll
+            )
+
+            cat = (
+                product.get("category")
+                or self._extract_category(product)
+            )
+
             self.create_category_node(cat)
-            self.link_product_to_category(pid, cat)
+
+            self.link_product_to_category(
+                pid,
+                cat
+            )
+
         return len(products)
 
     def extract_and_link_entities(self, filepath):
-        with open(filepath, "r", encoding="utf-8") as f:
-            products = json.load(f)
-        count = 0
-        for idx, product in enumerate(products):
-            pid = f"product_{idx}"
-            entities = self._extract_entities(product.get("description"))
-            for ename, etype in entities:
-                self.create_entity_node(ename, etype)
-                self.link_product_to_entity(pid, ename)
-                count += 1
+
+        with open(filepath,"r",encoding="utf8") as f:
+            raw=json.load(f)
+
+        products=[]
+
+        if isinstance(raw,dict):
+
+            for items in raw.values():
+                products.extend(items)
+
+        else:
+            products=raw
+
+        count=0
+
+        for idx,product in enumerate(products):
+
+            pid=f"product_{idx}"
+
+            entities=self._extract_entities(
+                product.get("description")
+            )
+
+            for ename,etype in entities:
+
+                self.create_entity_node(
+                    ename,
+                    etype
+                )
+
+                self.link_product_to_entity(
+                    pid,
+                    ename
+                )
+
+                count+=1
+
         return count
 
     def build_similarity_edges(self, threshold=0.7):
         index_path = "data/embeddings/products.index"
-        metadata_path = "data/embeddings/products_metadata.json"
+        metadata_path = "data/embeddings/metadata.json"
         index = faiss.read_index(index_path)
         with open(metadata_path, "r", encoding="utf-8") as f:
             metadata = json.load(f)
@@ -264,5 +329,5 @@ class Neo4jGraphBuilder:
 if __name__ == "__main__":
     builder = Neo4jGraphBuilder()
     builder.clear_database()
-    builder.build_all("data/cache/product_details.json", similarity_threshold=0.7)
+    builder.build_all("data/cache/merged_collection_products.json", similarity_threshold=0.7)
     builder.close()

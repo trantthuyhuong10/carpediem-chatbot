@@ -1,6 +1,6 @@
 # Carpediem Chatbot
 
-Trợ lý AI cho thương hiệu Carpediem, hỗ trợ tư vấn nến thơm, tinh dầu, đá thơm khuếch hương và giftset. Dự án kết hợp FastAPI, OpenAI API, Neo4j, FAISS và Sentence Transformers để xây dựng hệ thống chatbot có khả năng tìm kiếm sản phẩm theo ngữ nghĩa, gợi ý theo dịp/ngân sách, phân tích ảnh và lưu lịch sử hội thoại.
+Đây là dự án xây dựng Chatbot - Trợ lý AI cho thương hiệu chuyên về mùi hương Carpediem, hỗ trợ tư vấn nến thơm, tinh dầu, đá thơm khuếch hương và giftset. Dự án kết hợp FastAPI, OpenAI API, Neo4j, FAISS và Sentence Transformers để xây dựng hệ thống chatbot có khả năng tìm kiếm sản phẩm theo ngữ nghĩa, gợi ý theo dịp/ngân sách, phân tích ảnh và lưu lịch sử hội thoại.
 
 ## Mục Lục
 
@@ -81,29 +81,38 @@ Luồng xử lý chat chính:
 - SQLite cho lưu session và lịch sử chat.
 - Streamlit cho giao diện demo.
 - BeautifulSoup và Requests cho crawler.
+- HTML, CSS, JS để xây dựng giao diện cho hệ thống.
 
 ## Cấu Trúc Thư Mục
 
 ```text
-carpediem-chatbot/
-├── api/                     # FastAPI app, models, auth, admin routes, pipeline API
-│   ├── app.py               # Entry point FastAPI
-│   ├── admin_routes.py      # API quản trị và pipeline
-│   ├── auth.py              # Xác thực admin bằng token
-│   ├── models.py            # Pydantic schemas
-│   └── pipeline.py          # Chạy crawl/chunk/embedding bất đồng bộ
-├── crawl/                   # Crawler dữ liệu sản phẩm Carpediem
-├── data/                    # Dữ liệu cache, chunks, embeddings và SQLite DB
+carpediem-mini-project/
+├── api/                                # FastAPI app, models, auth, admin routes, pipeline API
+│   ├── app.py                          # Entry point FastAPI
+│   ├── admin_routes.py                 # API quản trị và pipeline
+│   ├── auth.py                         # Xác thực admin bằng token
+│   ├── models.py                       # Pydantic schemas
+│   └── pipeline.py                     # Chạy crawl/chunk/embedding bất đồng bộ
+├── crawl/                              # Crawler dữ liệu sản phẩm Carpediem
+│   ├── static_crawling_details.py      # Crawl chi tiết sản phẩm từ url được crawl từ file static_crawling.py
+│   └── static_crawling.py              # Crawl tên và link sản phẩm             
+├── data/                               # Dữ liệu cache, chunks, embeddings và SQLite DB
 │   ├── cache/
 │   ├── chunks/
 │   ├── embeddings/
 │   └── carpediem_chat.db
-├── interface/               # Streamlit UI
-├── processing/              # Chunking và embedding pipeline
-├── scripts/                 # Script demo CLI
-├── src/                     # Core chatbot, Graph RAG, Neo4j builder, memory store
-├── static/                  # Web chat UI và admin UI tĩnh
-├── requirements.txt         # Python dependencies
+├── interface/                          # Streamlit UI
+├── processing/                         # Chunking và embedding pipeline
+│   ├── chunking.py                     # Chunk dữ liệu
+│   └── embedding.py                    # Embed các chunk
+├── scripts/                            # Script demo CLI
+├── src/                                 
+│   ├── chatbot.py                      # Core chatbot
+│   ├── graph_builder.py                # Neo4j builder
+│   ├── graph_rag.py                    # Graph RAG
+│   └── memory_store.py                     # memory store
+├── static/                             # Web chat UI và admin UI tĩnh
+├── requirements.txt                    # Python dependencies
 └── README.md
 ```
 
@@ -127,7 +136,7 @@ cd carpediem-chatbot
 Tạo virtual environment:
 
 ```bash
-python -m venv .venv
+python -m venv venv
 ```
 
 Kích hoạt virtual environment trên Windows PowerShell:
@@ -139,7 +148,7 @@ Kích hoạt virtual environment trên Windows PowerShell:
 Kích hoạt virtual environment trên macOS/Linux:
 
 ```bash
-source .venv/bin/activate
+source venv/bin/activate
 ```
 
 Cài đặt dependencies:
@@ -300,8 +309,6 @@ Response mẫu:
     {
       "name": "Tên sản phẩm",
       "price": "350.000đ",
-      "original_price": "",
-      "discount": "",
       "url": "https://carpediem.vn/...",
       "image": "https://...",
       "score": 0.82,
@@ -444,7 +451,3 @@ Quy trình đề xuất khi phát triển:
 - Không public `OPENAI_API_KEY`, `NEO4J_PASSWORD` hoặc `ADMIN_PASSWORD`.
 - Admin token hiện được lưu trong memory của process và hết hạn sau 24 giờ.
 - CORS hiện đang cho phép tất cả origin để thuận tiện phát triển. Khi triển khai production, nên giới hạn `allow_origins` về domain chính thức.
-
-## License
-
-Chưa có thông tin license trong repository. Hãy bổ sung file `LICENSE` nếu dự án cần phân phối hoặc công khai mã nguồn.

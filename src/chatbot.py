@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from PIL import Image
 
+from crawl.product_db import ProductDatabase
 from src.graph_rag import GraphRAG
 from src.memory_store import MemoryStore
 
@@ -88,6 +89,7 @@ Kết quả tìm kiếm:
         else:
             self.client = OpenAI(api_key=api_key)
         self.rag = GraphRAG()
+        self.product_db = ProductDatabase()
         self.memory = MemoryStore()
         self.session_id = self.memory.load_or_create_session()
         self.system_context = (
@@ -98,6 +100,7 @@ Kết quả tìm kiếm:
 
     def close(self):
         self.rag.close()
+        self.product_db.close()
         self.memory.close()
 
     def _call_openai(self, messages, max_retries=1):
@@ -124,7 +127,8 @@ Kết quả tìm kiếm:
         self.memory.save_turn(self.session_id, user_msg, assistant_msg, turn_number)
 
     def _build_conversation_context(self) -> str:
-        messages = self.memory.get_recent_messages(self.session_id, limit=self.max_turns * 2)
+        max_messages = min(self.max_turns * 2, 6)
+        messages = self.memory.get_recent_messages(self.session_id, limit=max_messages)
         if not messages:
             return ""
         context_lines = ["Lịch sử hội thoại gần đây:"]
@@ -161,17 +165,71 @@ Kết quả tìm kiếm:
             return f"{query} (đang nói về: {names})"
         return query
 
+    def _hydrate_results_from_db(self, results):
+        if not results:
+            return results
+        names = [r.get("name", "").strip() for r in results if r.get("name")]
+        db_items = self.product_db.get_products_by_names(names)
+        db_map = {item["name"].strip().lower(): item for item in db_items}
+        for r in results:
+            key = r.get("name", "").strip().lower()
+            if not key or key not in db_map:
+                continue
+            row = db_map[key]
+            if row.get("price"):
+                r["price"] = row["price"]
+            if row.get("description"):
+                r["description"] = row["description"]
+            if row.get("image"):
+                r["image"] = row["image"]
+            if row.get("url"):
+                r["url"] = row["url"]
+        return results
+
+    def _fallback_db_search(self, query: str, top_k: int = 5):
+        items = self.product_db.search_items(query, top_k=top_k)
+        if not items:
+            return []
+        formatted = []
+        for item in items:
+            formatted.append({
+                "name": item.get("name", ""),
+                "price": item.get("price", ""),
+                "original_price": "",
+                "discount": "",
+                "url": item.get("url", ""),
+                "image": item.get("image", ""),
+                "score": 0.0,
+                "categories": [],
+                "collections": [],
+                "entities": [],
+                "description": item.get("description", ""),
+            })
+        return formatted
+
     def classify_intent(self, query: str) -> str:
-        prompt = self.INTENT_PROMPT.format(query=query)
-        response = self._call_openai([{"role": "user", "content": prompt}])
-        intent = response.strip().strip('"').strip("'").lower()
-        if intent not in ("product_search", "general_qa", "image_analysis"):
-            intent = "product_search"
-        return intent
+        lower_query = query.lower()
+        image_keywords = ["ảnh", "hình", "photo", "image", "upload", "camera", "gửi ảnh"]
+        product_keywords = [
+            "nến", "tinh dầu", "giftset", "quà", "sinh nhật", "valentine", "8/3", "20/10",
+            "giáng sinh", "tết", "giá", "mua", "link", "shop", "gợi ý", "tìm", "đề xuất",
+            "phù hợp", "mẫu", "loại", "set quà", "quà tặng", "bán chạy", "ưu đãi", "sale"
+        ]
+
+        if any(keyword in lower_query for keyword in image_keywords):
+            return "image_analysis"
+        if any(keyword in lower_query for keyword in product_keywords):
+            return "product_search"
+        return "general_qa"
 
     def handle_product_search(self, query: str) -> tuple:
         resolved_query = self._resolve_contextual_query(query)
         results = self.rag.query(resolved_query, top_k=5)
+        results = self._hydrate_results_from_db(results)
+
+        if not results:
+            results = self._fallback_db_search(query, top_k=5)
+
         formatted = self.rag.get_product_context(results)
         context = self._build_conversation_context()
         prompt = self.PRODUCT_PROMPT.format(query=query, results=formatted, conversation_context=context)

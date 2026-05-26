@@ -6,6 +6,7 @@ import faiss
 from sentence_transformers import SentenceTransformer
 from typing import List, Dict
 from neo4j import GraphDatabase
+from neo4j.exceptions import ServiceUnavailable
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,7 +15,7 @@ class GraphRAG:
     def __init__(self, model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"):
         self.model = SentenceTransformer(model_name)
         self.index = faiss.read_index("data/embeddings/products.index")
-        with open("data/embeddings/products_metadata.json", "r", encoding="utf-8") as f:
+        with open("data/embeddings/metadata.json", "r", encoding="utf-8") as f:
             self.metadata = json.load(f)
         self.driver = GraphDatabase.driver(
             os.getenv("NEO4J_URI"), auth=(os.getenv("NEO4J_USER"), os.getenv("NEO4J_PASSWORD"))
@@ -22,6 +23,16 @@ class GraphRAG:
 
     def close(self):
         self.driver.close()
+
+    def _run_neo4j_query(self, cypher, params=None, default=None):
+        if default is None:
+            default = []
+        try:
+            with self.driver.session() as s:
+                return [r.data() for r in s.run(cypher, **(params or {}))]
+        except (ServiceUnavailable, Exception) as e:
+            print(f"[GraphRAG] Neo4j unavailable or query failed: {e}")
+            return default
 
     def semantic_search(self, query, top_k=5):
         emb = self.model.encode([query], convert_to_numpy=True)
@@ -36,40 +47,38 @@ class GraphRAG:
         return results
 
     def graph_filter_by_category(self, names, category):
-        with self.driver.session() as s:
-            return [r["name"] for r in s.run("""
-                MATCH (p:Product)-[:BELONGS_TO]->(c:Category {name:$cat})
-                WHERE p.name IN $names RETURN p.name AS name
-            """, cat=category, names=names)]
+        rows = self._run_neo4j_query("""
+            MATCH (p:Product)-[:BELONGS_TO]->(c:Category {name:$cat})
+            WHERE p.name IN $names RETURN p.name AS name
+        """, {"cat": category, "names": names}, default=[])
+        return [r["name"] for r in rows]
 
     def graph_filter_by_price(self, names, min_p, max_p):
-        with self.driver.session() as s:
-            return [r["name"] for r in s.run("""
-                MATCH (p:Product) WHERE p.name IN $names AND p.price >= $min AND p.price <= $max
-                RETURN p.name AS name ORDER BY p.price
-            """, names=names, min=min_p, max=max_p)]
+        rows = self._run_neo4j_query("""
+            MATCH (p:Product) WHERE p.name IN $names AND p.price >= $min AND p.price <= $max
+            RETURN p.name AS name ORDER BY p.price
+        """, {"names": names, "min": min_p, "max": max_p}, default=[])
+        return [r["name"] for r in rows]
 
     def graph_expand(self, names):
-        with self.driver.session() as s:
-            return [r.data() for r in s.run("""
-                MATCH (p:Product) WHERE p.name IN $names
-                OPTIONAL MATCH (p)-[:BELONGS_TO]->(c:Category)
-                OPTIONAL MATCH (p)-[:PART_OF]->(col:Collection)
-                OPTIONAL MATCH (p)-[:HAS_ENTITY]->(e:Entity)
-                RETURN p.name AS name, p.price AS price, p.url AS url, p.description AS description,
-                    collect(DISTINCT c.name) AS categories, collect(DISTINCT col.name) AS collections,
-                    [x IN collect(DISTINCT {name: e.name, type: e.type}) WHERE x.name IS NOT NULL] AS entities
-            """, names=names)]
+        return self._run_neo4j_query("""
+            MATCH (p:Product) WHERE p.name IN $names
+            OPTIONAL MATCH (p)-[:BELONGS_TO]->(c:Category)
+            OPTIONAL MATCH (p)-[:PART_OF]->(col:Collection)
+            OPTIONAL MATCH (p)-[:HAS_ENTITY]->(e:Entity)
+            RETURN p.name AS name, p.price AS price, p.url AS url, p.description AS description,
+                collect(DISTINCT c.name) AS categories, collect(DISTINCT col.name) AS collections,
+                [x IN collect(DISTINCT {name: e.name, type: e.type}) WHERE x.name IS NOT NULL] AS entities
+        """, {"names": names}, default=[])
 
     def graph_find_similar(self, name, top_k=3):
-        with self.driver.session() as s:
-            return [r.data() for r in s.run("""
-                MATCH (p1:Product {name:$name})-[r:SIMILAR_TO]-(p2:Product)
-                OPTIONAL MATCH (p2)-[:BELONGS_TO]->(c:Category)
-                RETURN p2.name AS name, p2.price AS price, p2.url AS url,
-                    r.similarity AS sim, collect(DISTINCT c.name) AS categories
-                ORDER BY r.similarity DESC LIMIT $limit
-            """, name=name, limit=top_k)]
+        return self._run_neo4j_query("""
+            MATCH (p1:Product {name:$name})-[r:SIMILAR_TO]-(p2:Product)
+            OPTIONAL MATCH (p2)-[:BELONGS_TO]->(c:Category)
+            RETURN p2.name AS name, p2.price AS price, p2.url AS url,
+                r.similarity AS sim, collect(DISTINCT c.name) AS categories
+            ORDER BY r.similarity DESC LIMIT $limit
+        """, {"name": name, "limit": top_k}, default=[])
 
     def extract_price_range(self, query):
         numbers = re.findall(r"(\d[\d.]*)\s*(k|K|nghìn|triệu|tr)?", query)
@@ -219,21 +228,20 @@ class GraphRAG:
         score_expr = " + ".join([f"CASE WHEN toLower(p.name) CONTAINS toLower(${i}) THEN 1 ELSE 0 END" for i in range(len(keywords))])
         params = {str(i): kw for i, kw in enumerate(keywords)}
         params["limit"] = top_k
-        with self.driver.session() as s:
-            results = [r.data() for r in s.run(f"""
-                MATCH (p:Product) WHERE {conditions}
-                OPTIONAL MATCH (p)-[:BELONGS_TO]->(c:Category)
-                OPTIONAL MATCH (p)-[:PART_OF]->(col:Collection)
-                OPTIONAL MATCH (p)-[:HAS_ENTITY]->(e:Entity)
-                RETURN p.name AS name, p.price AS price, p.url AS url,
-                       p.description AS description, p.original_price AS original_price,
-                       p.discount AS discount, p.images AS images,
-                       collect(DISTINCT c.name) AS categories,
-                       collect(DISTINCT col.name) AS collections,
-                       collect(DISTINCT {{name: e.name, type: e.type}}) AS raw_entities,
-                       {score_expr} AS match_score
-                ORDER BY match_score DESC, p.name LIMIT $limit
-            """, **params)]
+        results = self._run_neo4j_query(f"""
+            MATCH (p:Product) WHERE {conditions}
+            OPTIONAL MATCH (p)-[:BELONGS_TO]->(c:Category)
+            OPTIONAL MATCH (p)-[:PART_OF]->(col:Collection)
+            OPTIONAL MATCH (p)-[:HAS_ENTITY]->(e:Entity)
+            RETURN p.name AS name, p.price AS price, p.url AS url,
+                   p.description AS description, p.original_price AS original_price,
+                   p.discount AS discount, p.images AS images,
+                   collect(DISTINCT c.name) AS categories,
+                   collect(DISTINCT col.name) AS collections,
+                   collect(DISTINCT {{name: e.name, type: e.type}}) AS raw_entities,
+                   {score_expr} AS match_score
+            ORDER BY match_score DESC, p.name LIMIT $limit
+        """, params, default=[])
         for r in results:
             r["entities"] = [e for e in r.pop("raw_entities", []) if e.get("name")]
             r["score"] = r.pop("match_score", 0)
@@ -254,15 +262,19 @@ class GraphRAG:
         else:
             cleaned = self._preprocess_query(user_input)
             search_query = cleaned if cleaned != user_input.lower() else user_input
-            results = self.graph_vector_hybrid_search(search_query, top_k)
-            if results:
-                top_name = results[0].get("name", "").lower()
-                keywords = [w for w in search_query.lower().split() if len(w) >= 2]
-                has_match = any(kw in top_name for kw in keywords)
-                if not has_match:
+            try:
+                results = self.graph_vector_hybrid_search(search_query, top_k)
+                if results:
+                    top_name = results[0].get("name", "").lower()
+                    keywords = [w for w in search_query.lower().split() if len(w) >= 2]
+                    has_match = any(kw in top_name for kw in keywords)
+                    if not has_match:
+                        results = self.neo4j_text_search(search_query, top_k)
+                if not results:
                     results = self.neo4j_text_search(search_query, top_k)
-            if not results:
-                results = self.neo4j_text_search(search_query, top_k)
+            except (ServiceUnavailable, Exception) as e:
+                print(f"[GraphRAG] Neo4j fallback active: {e}")
+                results = self.semantic_search(search_query, top_k)
         return [self.format_product(p) for p in results]
 
     def format_product(self, p):

@@ -11,7 +11,7 @@ class EmbeddingPipeline:
         self.chunks_dir = "data/chunks"
         self.output_dir = "data/embeddings"
         self.index_path = os.path.join(self.output_dir, "products.index")
-        self.metadata_path = os.path.join(self.output_dir, "products_metadata.json")
+        self.metadata_path = os.path.join(self.output_dir, "metadata.json")
 
     def load_chunks(self):
         all_products = []
@@ -25,11 +25,10 @@ class EmbeddingPipeline:
 
     def prepare_text(self, product):
         name = product.get("name", "")
+        collection_name = product.get("collection_name", "")
         description = product.get("description", "")
-        original_price = product.get("original_price", "")
         price = product.get("price", "")
-        discount = product.get("discount", "")
-        text = f"{name} {description} {original_price} {price} {discount}".strip()
+        text = f"{name} {description} {price}".strip()
         return text
 
     def create_embeddings(self, products):
@@ -48,11 +47,15 @@ class EmbeddingPipeline:
         metadata = []
         for p in products:
             metadata.append({
+                "collection_id": p.get("collection_id", ""),
+                "collection_name": p.get("collection_name", ""),
+                "collection_url": p.get("collection_url", ""),
                 "name": p.get("name", ""),
                 "url": p.get("url", ""),
                 "price": p.get("price", ""),
                 "description": p.get("description", ""),
                 "images": p.get("images", []),
+                "status": p.get("status", ""),
             })
         return metadata
 

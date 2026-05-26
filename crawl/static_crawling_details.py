@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import time
 import json
 import os
+from crawl.product_db import ProductDatabase
 
 class DetailCrawler:
     def __init__(self):
@@ -94,13 +95,142 @@ class DetailCrawler:
                 soup = self.parse_page(html)
                 detail = self.extract_product_detail(soup, url)
                 self.products_details.append(detail)
-            else:
-                pass
+            
+            self.analyze_giftsets()
+            
+    def is_giftset(self, product):
+
+        text=(
+            product.get("name","")+" "+
+            product.get("description","")
+        ).lower()
+
+        keywords=[
+            "gift set",
+            "giftset",
+            "bộ quà",
+            "combo quà"
+        ]
+
+        return any(
+            k in text
+            for k in keywords
+        )
+
+
+    def match_product(self,text,catalog):
+
+        best=None
+        best_score=0
+
+        for p in catalog:
+
+            score=fuzz.partial_ratio(
+                text.lower(),
+                p.lower()
+            )
+
+            if score>best_score:
+                best_score=score
+                best=p
+
+        if best_score>=80:
+            return best
+
+        return None
+
+
+    def extract_giftset_products(
+            self,
+            giftset,
+            all_products
+    ):
+
+        description=giftset.get(
+            "description",""
+        )
+
+        catalog=[]
+
+        for p in all_products:
+
+            name=p.get(
+                "name",""
+            )
+
+            if name:
+                catalog.append(name)
+
+        lines=re.split(
+            r"[\n•\-]+",
+            description
+        )
+
+        found=[]
+
+        for line in lines:
+
+            text=line.strip()
+
+            if not text:
+                continue
+
+            text_lower=text.lower()
+
+            ignore=False
+
+            for bad in self.ignore_items:
+
+                if bad in text_lower:
+                    ignore=True
+                    break
+
+            if ignore:
+                continue
+
+            matched=self.match_product(
+                text,
+                catalog
+            )
+
+            if matched:
+                found.append(matched)
+
+        return list(set(found))
+
+
+    def analyze_giftsets(self):
+
+        print("\nAnalyzing giftsets...")
+
+        for product in self.products_details:
+
+            if not self.is_giftset(product):
+                continue
+
+            items=self.extract_giftset_products(
+                product,
+                self.products_details
+            )
+
+            product["giftset_items"]=items
+
+            print(
+                product["name"]
+            )
+
+            for x in items:
+                print("   └─",x)
 
     def save_json(self, filepath):
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         with open(filepath, "w", encoding="utf-8") as f:
             json.dump(self.products_details, f, ensure_ascii=False, indent=2)
+
+    def save_db(self, db_path: str = None):
+        db = ProductDatabase(db_path=db_path)
+        db.load_items(self.products_details)
+        db.close()
 
 if __name__ == "__main__":
     crawler = DetailCrawler()
@@ -110,3 +240,4 @@ if __name__ == "__main__":
     crawler.crawl_details(products)
 
     crawler.save_json("data/cache/product_details.json")
+    crawler.save_db()
