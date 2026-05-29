@@ -1,4 +1,4 @@
-import numpy as np
+import time
 from sentence_transformers import CrossEncoder
 
 
@@ -25,6 +25,7 @@ class Reranker:
     def rerank(self, query: str, candidates: list, top_k: int = 5) -> list:
         if not self._available or not candidates:
             return candidates[:top_k]
+        t0 = time.time()
         pairs = [
             (query, f"{c.get('name', '')} {c.get('description', '')}")
             for c in candidates
@@ -39,4 +40,7 @@ class Reranker:
         result = scored[:top_k]
         for c, s in result:
             c["score"] = float(s)
+        dt = time.time() - t0
+        scores_str = ", ".join([f"{float(s):.4f}" for _, s in result])
+        print(f"  ├─ [Reranker]      {len(candidates)} candidates → top_{top_k}, scores: [{scores_str}] ({dt:.4f}s)")
         return [c for c, _ in result]
