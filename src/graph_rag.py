@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import re
+import time
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from typing import List, Dict
@@ -11,6 +12,7 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from src.vector_store import VectorStore
+from src.reranker import Reranker
 
 load_dotenv()
 
@@ -22,6 +24,7 @@ class GraphRAG:
         self.driver = GraphDatabase.driver(
             os.getenv("NEO4J_URI"), auth=(os.getenv("NEO4J_USER"), os.getenv("NEO4J_PASSWORD"))
         )
+        self.reranker = Reranker()
 
     def close(self):
         self.driver.close()
@@ -38,10 +41,47 @@ class GraphRAG:
 
     def semantic_search(self, query, top_k=5):
         if not self.store.available:
+            print("  ├─ [Dense Search]  SKIP: Qdrant unavailable")
             return []
+        t0 = time.time()
         emb = self.model.encode([query], convert_to_numpy=True)
         results = self.store.search(emb[0], top_k)
-        return results[:min(top_k * 2, len(results))]
+        dt = time.time() - t0
+        print(f"  ├─ [Dense Search]  query=\"{query[:50]}\" → {len(results)} results ({dt:.4f}s)")
+        if results:
+            top_names = [r.get("name", "?")[:30] for r in results[:3]]
+            print(f"  │   top: {', '.join(top_names)}")
+        return results
+
+    def sparse_search(self, query, top_k=5):
+        if not self.store.available:
+            print("  ├─ [Sparse Search] SKIP: Qdrant unavailable")
+            return []
+        if not self.store.vocab:
+            print("  ├─ [Sparse Search] SKIP: no sparse vocab (run embedding.py)")
+            return []
+        t0 = time.time()
+        results = self.store.sparse_search(query, top_k)
+        dt = time.time() - t0
+        print(f"  ├─ [Sparse Search] query=\"{query[:50]}\" → {len(results)} results ({dt:.4f}s)")
+        if results:
+            top_names = [r.get("name", "?")[:30] for r in results[:3]]
+            print(f"  │   top: {', '.join(top_names)}")
+        return results
+
+    @staticmethod
+    def _merge_results(dense, sparse):
+        t0 = time.time()
+        seen = {}
+        for r in dense + sparse:
+            name = r.get("name", "")
+            if name:
+                if name not in seen or r.get("score", 0) > seen[name].get("score", 0):
+                    seen[name] = r
+        result = list(seen.values())
+        dt = time.time() - t0
+        print(f"  ├─ [Merge]         dense={len(dense)} + sparse={len(sparse)} → {len(result)} unique ({dt:.4f}s)")
+        return result
 
     def graph_filter_by_category(self, names, category):
         rows = self._run_neo4j_query("""
@@ -91,35 +131,67 @@ class GraphRAG:
         return prices
 
     def graph_vector_hybrid_search(self, query, top_k=5):
-        results = self.semantic_search(query, top_k * 2)
-        if not results:
+        print("  ├─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─")
+        print(f"  ├─ [Hybrid Search] top_k={top_k}, wide_k={top_k * 3}")
+        print(f"  ├─ query=\"{query[:80]}\"")
+        print("  ├─ ")
+        wide_k = top_k * 3
+        dense = self.semantic_search(query, wide_k)
+        sparse = self.sparse_search(query, wide_k)
+        merged = self._merge_results(dense, sparse)
+        if not merged:
+            print("  └─ [Hybrid Search] No results after merge, returning []")
             return []
-        names = [r["name"] for r in results]
+
+        names = [r["name"] for r in merged]
 
         price_range = self.extract_price_range(query)
         if price_range:
-            min_p = int(min(price_range)) if len(price_range) >= 2 else 0
-            max_p = int(max(price_range)) if len(price_range) >= 2 else int(price_range[0])
+            if len(price_range) >= 2:
+                min_p, max_p = int(min(price_range)), int(max(price_range))
+            else:
+                min_p, max_p = 0, int(price_range[0])
+            t0 = time.time()
             filtered = self.graph_filter_by_price(names, min_p, max_p)
-            results = [r for r in results if r["name"] in filtered]
-            names = filtered
+            dt = time.time() - t0
+            print(f"  ├─ [Price Filter]  {min_p:,}₫ - {max_p:,}₫ → {len(merged)} → {len(filtered)} passed ({dt:.4f}s)")
+            merged = [r for r in merged if r["name"] in filtered]
+            names = [r["name"] for r in merged]
 
         cat_map = {"nen": "Nến thơm", "nến": "Nến thơm", "tinh dầu": "Tinh dầu",
                     "gift": "Giftset", "set quà": "Giftset", "đá thơm": "Khuếch hương"}
+        cat_applied = False
         for kw, cat in cat_map.items():
             if kw in query.lower():
+                t0 = time.time()
                 cat_filtered = self.graph_filter_by_category(names, cat)
+                dt = time.time() - t0
+                print(f"  ├─ [Category]     \"{cat}\" (matched \"{kw}\") → {len(merged)} → {len(cat_filtered)} passed ({dt:.4f}s)")
                 if cat_filtered:
-                    results = [r for r in results if r["name"] in cat_filtered]
+                    merged = [r for r in merged if r["name"] in cat_filtered]
+                cat_applied = True
                 break
+        if not cat_applied:
+            print(f"  ├─ [Category]     no category keyword detected, skip")
 
-        enriched = {e["name"]: e for e in self.graph_expand([r["name"] for r in results])}
-        for r in results:
+        print("  ├─ ")
+        reranked = self.reranker.rerank(query, merged, top_k)
+        if not reranked:
+            print("  ├─ [Reranker]     fallback: using first {top_k} from merged")
+            reranked = merged[:top_k]
+
+        t0 = time.time()
+        enriched = {e["name"]: e for e in self.graph_expand([r["name"] for r in reranked])}
+        dt = time.time() - t0
+        print(f"  ├─ [Graph Enrich] {len(reranked)} products enriched ({dt:.4f}s)")
+        for r in reranked:
             e = enriched.get(r["name"], {})
             r["categories"] = e.get("categories", [])
             r["collections"] = e.get("collections", [])
             r["entities"] = e.get("entities", [])
-        return results[:top_k]
+
+        print("  ├─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─")
+        return reranked[:top_k]
 
     def recommend_by_occasion(self, occasion, top_k=5):
         kw = {
@@ -133,32 +205,26 @@ class GraphRAG:
             "tết": "tết nguyên đán xuân",
         }
         expanded = occasion
+        matched = ""
         for key, val in kw.items():
             if key in occasion.lower():
                 expanded = f"{occasion} {val}"
+                matched = key
                 break
+        print(f"  ├─ [Occasion]     detected=\"{matched}\", expanded=\"{expanded[:80]}\"")
         return self.graph_vector_hybrid_search(expanded, top_k)
 
     def recommend_by_budget(self, budget, top_k=5):
         price_range = self.extract_price_range(budget)
         if not price_range:
+            print("  ├─ [Budget Mode]  no price range found, fallback to hybrid search")
             return self.graph_vector_hybrid_search(budget, top_k)
         if len(price_range) == 1:
             max_p, min_p = int(price_range[0]), int(price_range[0] * 0.5)
         else:
             min_p, max_p = int(min(price_range)), int(max(price_range))
-        results = self.semantic_search("sản phẩm quà tặng", top_k * 3)
-        if not results:
-            return []
-        names = [r["name"] for r in results]
-        filtered = self.graph_filter_by_price(names, min_p, max_p)
-        results = [r for r in results if r["name"] in filtered]
-        enriched = {e["name"]: e for e in self.graph_expand([r["name"] for r in results])}
-        for r in results:
-            e = enriched.get(r["name"], {})
-            r["categories"] = e.get("categories", [])
-            r["collections"] = e.get("collections", [])
-        return results[:top_k]
+        print(f"  ├─ [Budget Mode]  range: {min_p:,}₫ - {max_p:,}₫ (price filter inside hybrid search)")
+        return self.graph_vector_hybrid_search(budget, top_k)
 
     def find_similar_products(self, name, top_k=5):
         similar = self.graph_find_similar(name, top_k)
@@ -223,7 +289,9 @@ class GraphRAG:
 
     def neo4j_text_search(self, query, top_k=5):
         keywords = [w for w in query.lower().split() if len(w) >= 2]
+        print(f"  ├─ [Neo4j Text]   keywords={keywords}, top_k={top_k}")
         if not keywords:
+            print("  └─ [Neo4j Text]   no valid keywords, return []")
             return []
         conditions = " OR ".join([f"toLower(p.name) CONTAINS toLower(${i})" for i in range(len(keywords))])
         score_expr = " + ".join([f"CASE WHEN toLower(p.name) CONTAINS toLower(${i}) THEN 1 ELSE 0 END" for i in range(len(keywords))])
@@ -252,17 +320,29 @@ class GraphRAG:
             original = r.get("original_price")
             if isinstance(original, (int, float)):
                 r["original_price"] = self._format_price(original)
+        print(f"  └─ [Neo4j Text]   → {len(results)} results")
         return results
 
     def query(self, user_input, top_k=5, mode="auto"):
+        t_start = time.time()
+        bar = "═" * 58
+        print(f"\n╔{bar}╗")
+        print(f"║  QUERY: \"{user_input[:80]}\"")
+        print(f"╚{bar}╝")
+
         user_input = user_input.strip()
         if mode == "occasion" or any(k in user_input.lower() for k in ["sinh nhật", "valentine", "8/3", "20/10", "cưới", "tân gia", "giáng sinh", "tết"]):
+            print(f"  ├─ [Intent]        occasion mode")
             results = self.recommend_by_occasion(user_input, top_k)
         elif mode == "budget" or any(k in user_input.lower() for k in ["dưới", "trên", "khoảng", "từ", "đến", "ngân sách", "budget"]):
+            print(f"  ├─ [Intent]        budget mode")
             results = self.recommend_by_budget(user_input, top_k)
         else:
             cleaned = self._preprocess_query(user_input)
             search_query = cleaned if cleaned != user_input.lower() else user_input
+            if search_query != user_input.lower():
+                print(f"  ├─ [Preprocess]   \"{user_input[:60]}\" → \"{search_query[:60]}\"")
+            print(f"  ├─ [Intent]        hybrid (dense + sparse + graph + rerank)")
             try:
                 results = self.graph_vector_hybrid_search(search_query, top_k)
                 if results:
@@ -270,13 +350,23 @@ class GraphRAG:
                     keywords = [w for w in search_query.lower().split() if len(w) >= 2]
                     has_match = any(kw in top_name for kw in keywords)
                     if not has_match:
+                        print(f"  ├─ [Fallback]     top keyword mismatch, trying Neo4j text search...")
                         results = self.neo4j_text_search(search_query, top_k)
                 if not results:
+                    print(f"  ├─ [Fallback]     hybrid returned empty, trying Neo4j text search...")
                     results = self.neo4j_text_search(search_query, top_k)
             except (ServiceUnavailable, Exception) as e:
-                print(f"[GraphRAG] Neo4j fallback active: {e}")
+                print(f"  ├─ [Fallback]     Neo4j error: {e}, falling back to dense-only")
                 results = self.semantic_search(search_query, top_k)
-        return [self.format_product(p) for p in results]
+
+        formatted = [self.format_product(p) for p in results]
+        t_total = time.time() - t_start
+        print(f"  └─ [Total]        {len(formatted)} results in {t_total:.4f}s")
+        if formatted:
+            print(f"       Top:")
+            for i, r in enumerate(formatted[:min(3, len(formatted))], 1):
+                print(f"         {i}. [{r['score']:.4f}] {r['name']} | {r['price']}")
+        return formatted
 
     def format_product(self, p):
         url = p.get("url", "")
