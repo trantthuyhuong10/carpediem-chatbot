@@ -3,6 +3,7 @@ import sys
 import json
 import time
 import threading
+import subprocess
 from typing import Dict, Optional
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -17,6 +18,7 @@ from processing.embedding import EmbeddingPipeline
 _pipeline_status: Dict[str, dict] = {
     "crawl": {"running": False, "progress": 0, "message": "", "last_run": None, "result": None},
     "crawl_details": {"running": False, "progress": 0, "message": "", "last_run": None, "result": None},
+    "merge": {"running": False, "progress": 0, "message": "", "last_run": None, "result": None},
     "chunking": {"running": False, "progress": 0, "message": "", "last_run": None, "result": None},
     "embedding": {"running": False, "progress": 0, "message": "", "last_run": None, "result": None},
     "full_pipeline": {"running": False, "progress": 0, "message": "", "last_run": None, "result": None},
@@ -92,6 +94,33 @@ def run_chunking(batch_size: int = 10) -> dict:
         _update_status("chunking", running=False, progress=0, message=f"Lỗi: {str(e)}")
         return {"status": "error", "error": str(e)}
 
+def run_merge() -> dict:
+    try:
+        _update_status("merge", running=True, progress=10, message="Đang merge collection + product details...")
+        cmd = [sys.executable, os.path.join("scripts", "merge_collection_product_details.py")]
+        proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        if proc.returncode != 0:
+            stderr = (proc.stderr or "").strip()
+            stdout = (proc.stdout or "").strip()
+            detail = stderr or stdout or f"exit code {proc.returncode}"
+            raise RuntimeError(detail)
+
+        output_path = os.path.join("data", "cache", "merged_collection_products.json")
+        if not os.path.exists(output_path):
+            raise FileNotFoundError(f"Không tìm thấy file merge output: {output_path}")
+
+        _update_status(
+            "merge",
+            running=False,
+            progress=100,
+            message="Đã merge dữ liệu collection + product details",
+            result={"output": output_path},
+        )
+        return {"status": "ok", "output": output_path}
+    except Exception as e:
+        _update_status("merge", running=False, progress=0, message=f"Lỗi: {str(e)}")
+        return {"status": "error", "error": str(e)}
+
 def run_embedding() -> dict:
     try:
         _update_status("embedding", running=True, progress=10, message="Đang tạo embeddings...")
@@ -117,12 +146,17 @@ def run_full_pipeline(total_pages: int = 7, batch_size: int = 10) -> dict:
         if details_result.get("status") != "ok":
             raise Exception(f"Crawl details failed: {details_result.get('error')}")
 
-        _update_status("full_pipeline", progress=50, message="Bước 3/4: Chunking dữ liệu...")
+        _update_status("full_pipeline", progress=50, message="Bước 3/5: Merge collection + product details...")
+        merge_result = run_merge()
+        if merge_result.get("status") != "ok":
+            raise Exception(f"Merge failed: {merge_result.get('error')}")
+
+        _update_status("full_pipeline", progress=65, message="Bước 4/5: Chunking dữ liệu...")
         chunk_result = run_chunking(batch_size)
         if chunk_result.get("status") != "ok":
             raise Exception(f"Chunking failed: {chunk_result.get('error')}")
 
-        _update_status("full_pipeline", progress=70, message="Bước 4/4: Tạo embeddings...")
+        _update_status("full_pipeline", progress=80, message="Bước 5/5: Tạo embeddings...")
         embed_result = run_embedding()
         if embed_result.get("status") != "ok":
             raise Exception(f"Embedding failed: {embed_result.get('error')}")
@@ -130,6 +164,7 @@ def run_full_pipeline(total_pages: int = 7, batch_size: int = 10) -> dict:
         _update_status("full_pipeline", running=False, progress=100, message="Pipeline hoàn tất!", result={
             "crawl": crawl_result,
             "details": details_result,
+            "merge": merge_result,
             "chunking": chunk_result,
             "embedding": embed_result,
         })

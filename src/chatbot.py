@@ -3,6 +3,7 @@ import json
 import re
 import base64
 import time
+import uuid
 import requests
 from typing import List, Dict, Optional
 from io import BytesIO
@@ -97,6 +98,22 @@ Kết quả tìm kiếm:
             "tinh dầu, đá thơm và giftset cao cấp tại Việt Nam. "
             "Website: https://carpediem.vn"
         )
+        self.debug = os.getenv("CHATBOT_DEBUG", "1").lower() not in {"0", "false", "no", "off"}
+
+    def _log(self, request_id: str, stage: str, message: str):
+        if not self.debug:
+            return
+        print(f"[ChatBot][{request_id}][{stage}] {message}")
+
+    def _summarize_results(self, results, top_n: int = 3) -> str:
+        if not results:
+            return "0 results"
+        parts = []
+        for item in results[:top_n]:
+            name = item.get("name", "")
+            score = item.get("score", 0)
+            parts.append(f"{name}({score:.3f})")
+        return f"{len(results)} results | top: " + ", ".join(parts)
 
     def close(self):
         self.rag.close()
@@ -220,33 +237,50 @@ Kết quả tìm kiếm:
             return "product_search"
         return "general_qa"
 
-    def handle_product_search(self, query: str) -> tuple:
+    def handle_product_search(self, query: str, request_id: str = "-") -> tuple:
         resolved_query = self._resolve_contextual_query(query)
+        if resolved_query != query:
+            self._log(request_id, "context", f"resolved contextual query: '{query}' -> '{resolved_query}'")
+
         results = self.rag.query(resolved_query, top_k=5)
+        self._log(request_id, "retrieval", f"GraphRAG returned {self._summarize_results(results)}")
+
         results = self._hydrate_results_from_db(results)
+        self._log(request_id, "hydrate", f"after SQLite hydration: {self._summarize_results(results)}")
 
         if not results:
-            results = self._fallback_db_search(query, top_k=5)
+            try:
+                results = self._fallback_db_search(query, top_k=5)
+                self._log(request_id, "fallback", f"fallback SQLite search used: {self._summarize_results(results)}")
+            except Exception as e:
+                self._log(request_id, "fallback_error", f"SQLite fallback failed: {e}")
+                raise
 
         formatted = self.rag.get_product_context(results)
         context = self._build_conversation_context()
         prompt = self.PRODUCT_PROMPT.format(query=query, results=formatted, conversation_context=context)
+        self._log(request_id, "prompt", f"product prompt built | context_chars={len(context)} | results_count={len(results)}")
 
         answer = self._call_openai([{"role": "user", "content": prompt}])
+        self._log(request_id, "openai", f"answer generated | answer_chars={len(answer)}")
 
         self._save_turn(query, answer)
+        self._log(request_id, "memory", "conversation turn saved")
 
         return answer, results
 
-    def handle_general_qa(self, query: str) -> str:
+    def handle_general_qa(self, query: str, request_id: str = "-") -> str:
         context = self._build_conversation_context()
         messages = [{"role": "system", "content": self.system_context}]
 
         messages.append({"role": "user", "content": self.GENERAL_PROMPT.format(query=query, conversation_context=context)})
+        self._log(request_id, "prompt", f"general prompt built | context_chars={len(context)}")
 
         answer = self._call_openai(messages)
+        self._log(request_id, "openai", f"answer generated | answer_chars={len(answer)}")
 
         self._save_turn(query, answer)
+        self._log(request_id, "memory", "conversation turn saved")
 
         return answer
 
@@ -255,7 +289,7 @@ Kết quả tìm kiếm:
         image.save(buffered, format="JPEG")
         return base64.b64encode(buffered.getvalue()).decode()
 
-    def handle_image(self, image_data, query: str = "") -> tuple:
+    def handle_image(self, image_data, query: str = "", request_id: str = "-") -> tuple:
         if isinstance(image_data, bytes):
             image = Image.open(BytesIO(image_data))
         elif isinstance(image_data, str):
@@ -279,6 +313,7 @@ Kết quả tìm kiếm:
 
         search_query = query if query else "nến thơm tinh dầu quà tặng"
         results = self.rag.query(search_query.strip(), top_k=5)
+        self._log(request_id, "retrieval", f"image-mode retrieval for '{search_query}': {self._summarize_results(results)}")
 
         if results:
             formatted = self.rag.get_product_context(results)
@@ -289,6 +324,7 @@ Kết quả tìm kiếm:
         prompt = self.IMAGE_PROMPT.format(results=formatted, conversation_context=context)
         if query:
             prompt += f"\n\nNgười dùng hỏi: {query}"
+        self._log(request_id, "prompt", f"image prompt built | context_chars={len(context)} | results_count={len(results)}")
 
         messages = [{
             "role": "user",
@@ -299,30 +335,41 @@ Kết quả tìm kiếm:
         }]
 
         answer = self._call_openai(messages)
+        self._log(request_id, "openai", f"answer generated | answer_chars={len(answer)}")
 
         display_query = query if query else "Phân tích ảnh"
         self._save_turn(display_query, answer)
+        self._log(request_id, "memory", "conversation turn saved")
 
         return answer, results
 
     def chat(self, message: str, image=None) -> tuple:
+        request_id = uuid.uuid4().hex[:8]
         message = message.strip()
+        self._log(request_id, "start", f"session={self.session_id} | has_image={image is not None} | message='{message[:120]}'")
+
         if not message and image is None:
+            self._log(request_id, "reject", "empty message and no image")
             return "Vui lòng nhập câu hỏi hoặc gửi ảnh.", []
 
         if image is not None:
-            answer, results = self.handle_image(image, message)
+            answer, results = self.handle_image(image, message, request_id=request_id)
+            self._log(request_id, "done", f"image flow complete: {self._summarize_results(results)}")
             return answer, results
 
         intent = self.classify_intent(message)
+        self._log(request_id, "intent", f"classified='{intent}'")
 
         if intent == "product_search":
-            answer, results = self.handle_product_search(message)
+            answer, results = self.handle_product_search(message, request_id=request_id)
+            self._log(request_id, "done", f"product flow complete: {self._summarize_results(results)}")
             return answer, results
         elif intent == "image_analysis":
+            self._log(request_id, "done", "image intent detected without image payload")
             return "Bạn muốn phân tích ảnh? Vui lòng gửi kèm ảnh nhé.", []
         else:
-            answer = self.handle_general_qa(message)
+            answer = self.handle_general_qa(message, request_id=request_id)
+            self._log(request_id, "done", "general flow complete")
             return answer, []
 
     def reset_history(self):

@@ -5,7 +5,9 @@ const state = {
     pendingImage: null,
     pendingImageBase64: null,
     isLoading: false,
-    sidebarOpen: false
+    sidebarOpen: false,
+    loadingTimer: null,
+    loadingStartedAt: null
 };
 
 const elements = {
@@ -198,7 +200,7 @@ function createMessageElement(msg) {
         });
 
         productSection.appendChild(productGrid);
-        div.appendChild(productSection);
+        contentDiv.appendChild(productSection);
     }
 
     return div;
@@ -239,7 +241,14 @@ function createLoadingMessage() {
     div.className = 'message assistant';
     div.id = 'loading-message';
     div.innerHTML = `
+        <div class="message-avatar assistant">
+            <img src="/static/img/bot_ava.webp" alt="assistant" onerror="this.parentElement.innerHTML='🤖'">
+        </div>
         <div class="message-content">
+            <div class="loading-label">
+                <span class="thinking-text">Dang suy nghi...</span>
+                <span class="thinking-elapsed" id="thinking-elapsed">0.0s</span>
+            </div>
             <div class="loading">
                 <span></span>
                 <span></span>
@@ -250,18 +259,47 @@ function createLoadingMessage() {
     return div;
 }
 
+function startLoadingTimer() {
+    stopLoadingTimer();
+    state.loadingStartedAt = performance.now();
+    state.loadingTimer = window.setInterval(() => {
+        const elapsedEl = document.getElementById('thinking-elapsed');
+        if (!elapsedEl) return;
+        const elapsed = (performance.now() - state.loadingStartedAt) / 1000;
+        elapsedEl.textContent = `${elapsed.toFixed(1)}s`;
+    }, 100);
+}
+
+function stopLoadingTimer() {
+    if (state.loadingTimer) {
+        window.clearInterval(state.loadingTimer);
+        state.loadingTimer = null;
+    }
+    state.loadingStartedAt = null;
+}
+
+function removeLoadingMessage() {
+    stopLoadingTimer();
+    const loadingMessage = document.getElementById('loading-message');
+    if (loadingMessage) loadingMessage.remove();
+}
+
 async function handleSend() {
     const message = elements.messageInput.value.trim();
     if (!message && !state.pendingImage) return;
     if (state.isLoading) return;
 
+    const imagePayload = state.pendingImageBase64;
+
     state.isLoading = true;
     elements.sendBtn.disabled = true;
+    elements.messageInput.disabled = true;
+    elements.sendBtn.classList.add('is-loading');
 
     const userMessage = {
         role: 'user',
         content: message || 'Phân tích ảnh',
-        image: state.pendingImageBase64
+        image: imagePayload
     };
 
     state.messages.push(userMessage);
@@ -273,23 +311,37 @@ async function handleSend() {
 
     const loadingEl = createLoadingMessage();
     elements.messagesContainer.appendChild(loadingEl);
+    startLoadingTimer();
     scrollToBottom();
 
     try {
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), 120000);
         const res = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 message: message,
-                image: state.pendingImageBase64,
+                image: imagePayload,
                 session_id: state.currentSessionId
-            })
+            }),
+            signal: controller.signal
         });
+        window.clearTimeout(timeoutId);
+
+        if (!res.ok) {
+            let detail = `HTTP ${res.status}`;
+            try {
+                const errData = await res.json();
+                detail = errData.detail || detail;
+            } catch (_) {
+                // ignore json parse errors
+            }
+            throw new Error(detail);
+        }
 
         const data = await res.json();
-
-        const loadingMessage = document.getElementById('loading-message');
-        if (loadingMessage) loadingMessage.remove();
+        removeLoadingMessage();
 
         const assistantMessage = {
             role: 'assistant',
@@ -306,19 +358,21 @@ async function handleSend() {
         }
     } catch (error) {
         console.error('Error sending message:', error);
-        const loadingMessage = document.getElementById('loading-message');
-        if (loadingMessage) loadingMessage.remove();
+        removeLoadingMessage();
 
         const errorMessage = {
             role: 'assistant',
-            content: 'Có lỗi xảy ra. Vui lòng thử lại.',
+            content: `Co loi xay ra: ${escapeHtml(error.message || 'Vui long thu lai.')}`,
             results: []
         };
         state.messages.push(errorMessage);
         renderMessages();
     } finally {
         state.isLoading = false;
+        stopLoadingTimer();
         elements.sendBtn.disabled = false;
+        elements.messageInput.disabled = false;
+        elements.sendBtn.classList.remove('is-loading');
         elements.messageInput.focus();
     }
 }

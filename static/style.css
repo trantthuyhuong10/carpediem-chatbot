@@ -461,6 +461,24 @@ body {
     padding: 8px 0;
 }
 
+.loading-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+}
+
+.thinking-text {
+    font-weight: 500;
+}
+
+.thinking-elapsed {
+    font-variant-numeric: tabular-nums;
+    opacity: 0.9;
+}
+
 .loading span {
     width: 8px;
     height: 8px;
@@ -528,6 +546,10 @@ body {
 .send-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.send-btn.is-loading {
+    opacity: 0.7;
 }
 
 #message-input {

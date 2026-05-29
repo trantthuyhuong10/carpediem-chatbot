@@ -469,8 +469,9 @@ class ProductDatabase:
             WHERE {where_clause}
             LIMIT ?
         """
-        params.append(top_k)
-        rows = self.conn.execute(query, params).fetchall()
+        # where_clause appears twice (Products + Giftset), so keyword params must be duplicated.
+        all_params = params + params + [top_k]
+        rows = self.conn.execute(query, all_params).fetchall()
         return [self._row_to_dict(row) for row in rows]
 
 

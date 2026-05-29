@@ -172,7 +172,13 @@ async def chat(request: ChatRequest):
 
         return ChatResponse(answer=answer, results=product_results, session_id=bot.get_session_id())
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        request_id = os.urandom(4).hex()
+        print(f"[API][chat][{request_id}] ERROR: {e}")
+        fallback_answer = (
+            "Xin lỗi, hệ thống đang bận hoặc gặp lỗi tạm thời nên chưa trả lời được. "
+            "Bạn vui lòng thử lại sau ít giây, hoặc đặt câu hỏi ngắn gọn hơn."
+        )
+        return ChatResponse(answer=fallback_answer, results=[], session_id=bot.get_session_id() if bot else "")
 
 
 @app.post("/api/chat/upload", response_model=ChatResponse)
@@ -200,7 +206,13 @@ async def chat_with_upload(message: str = Form(""), image: UploadFile = File(Non
 
         return ChatResponse(answer=answer, results=product_results)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        request_id = os.urandom(4).hex()
+        print(f"[API][chat_upload][{request_id}] ERROR: {e}")
+        fallback_answer = (
+            "Xin lỗi, hệ thống đang bận hoặc gặp lỗi tạm thời nên chưa trả lời được. "
+            "Bạn vui lòng thử lại sau ít giây, hoặc đặt câu hỏi ngắn gọn hơn."
+        )
+        return ChatResponse(answer=fallback_answer, results=[], session_id=bot.get_session_id() if bot else "")
 
 
 @app.post("/api/reset")

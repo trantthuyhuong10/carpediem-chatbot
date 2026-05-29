@@ -168,10 +168,8 @@ def process_message(prompt, image_bytes=None):
                 st.markdown(answer)
                 if results:
                     st.markdown("**Sản phẩm gợi ý:**")
-                    cols = st.columns(min(len(results), 3))
                     for i, product in enumerate(results):
-                        with cols[i % 3]:
-                            render_product_card(product, f"result_{i}")
+                        render_product_card(product, f"result_{i}")
                 st.session_state.messages.append({
                     "role": "assistant",
                     "content": answer,
@@ -232,10 +230,8 @@ for msg in st.session_state.messages:
             st.markdown(msg["content"])
             if msg.get("results"):
                 st.markdown("**Sản phẩm gợi ý:**")
-                cols = st.columns(min(len(msg["results"]), 3))
                 for i, product in enumerate(msg["results"]):
-                    with cols[i % 3]:
-                        render_product_card(product, f"prod_{id(msg)}_{i}")
+                    render_product_card(product, f"prod_{id(msg)}_{i}")
 
 # --- Image preview ---
 if st.session_state.pending_image:
