@@ -59,16 +59,26 @@ class EmbeddingPipeline:
         if not self.store.available:
             return {"total_products": 0, "error": "Qdrant not available"}
 
+        texts = [self.prepare_text(p) for p in products]
+
         self.store.delete_collection()
         self.store._ensure_collection()
+
+        vocab = VectorStore._build_vocabulary(texts)
+        self.store.set_vocab(vocab)
+
+        sparse_vectors = []
+        for text in texts:
+            sparse_vectors.append(self.store._text_to_sparse(text))
         embeddings = self.create_embeddings(products)
         payloads = self.create_payloads(products)
-        self.store.upsert(embeddings, payloads)
+        self.store.upsert(embeddings, payloads, sparse_vectors=sparse_vectors)
 
         return {
             "total_products": len(products),
             "embedding_dim": embeddings.shape[1],
             "vector_store": "qdrant",
+            "sparse_vocab_size": len(vocab),
         }
 
 

@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from src.vector_store import VectorStore
+from src.reranker import Reranker
 
 load_dotenv()
 
@@ -22,6 +23,7 @@ class GraphRAG:
         self.driver = GraphDatabase.driver(
             os.getenv("NEO4J_URI"), auth=(os.getenv("NEO4J_USER"), os.getenv("NEO4J_PASSWORD"))
         )
+        self.reranker = Reranker()
 
     def close(self):
         self.driver.close()
@@ -41,7 +43,22 @@ class GraphRAG:
             return []
         emb = self.model.encode([query], convert_to_numpy=True)
         results = self.store.search(emb[0], top_k)
-        return results[:min(top_k * 2, len(results))]
+        return results
+
+    def sparse_search(self, query, top_k=5):
+        if not self.store.available:
+            return []
+        return self.store.sparse_search(query, top_k)
+
+    @staticmethod
+    def _merge_results(dense, sparse):
+        seen = {}
+        for r in dense + sparse:
+            name = r.get("name", "")
+            if name:
+                if name not in seen or r.get("score", 0) > seen[name].get("score", 0):
+                    seen[name] = r
+        return list(seen.values())
 
     def graph_filter_by_category(self, names, category):
         rows = self._run_neo4j_query("""
@@ -91,18 +108,22 @@ class GraphRAG:
         return prices
 
     def graph_vector_hybrid_search(self, query, top_k=5):
-        results = self.semantic_search(query, top_k * 2)
-        if not results:
+        wide_k = top_k * 3
+        dense = self.semantic_search(query, wide_k)
+        sparse = self.sparse_search(query, wide_k)
+        merged = self._merge_results(dense, sparse)
+        if not merged:
             return []
-        names = [r["name"] for r in results]
+
+        names = [r["name"] for r in merged]
 
         price_range = self.extract_price_range(query)
         if price_range:
             min_p = int(min(price_range)) if len(price_range) >= 2 else 0
             max_p = int(max(price_range)) if len(price_range) >= 2 else int(price_range[0])
             filtered = self.graph_filter_by_price(names, min_p, max_p)
-            results = [r for r in results if r["name"] in filtered]
-            names = filtered
+            merged = [r for r in merged if r["name"] in filtered]
+            names = [r["name"] for r in merged]
 
         cat_map = {"nen": "Nến thơm", "nến": "Nến thơm", "tinh dầu": "Tinh dầu",
                     "gift": "Giftset", "set quà": "Giftset", "đá thơm": "Khuếch hương"}
@@ -110,16 +131,20 @@ class GraphRAG:
             if kw in query.lower():
                 cat_filtered = self.graph_filter_by_category(names, cat)
                 if cat_filtered:
-                    results = [r for r in results if r["name"] in cat_filtered]
+                    merged = [r for r in merged if r["name"] in cat_filtered]
                 break
 
-        enriched = {e["name"]: e for e in self.graph_expand([r["name"] for r in results])}
-        for r in results:
+        reranked = self.reranker.rerank(query, merged, top_k)
+        if not reranked:
+            reranked = merged[:top_k]
+
+        enriched = {e["name"]: e for e in self.graph_expand([r["name"] for r in reranked])}
+        for r in reranked:
             e = enriched.get(r["name"], {})
             r["categories"] = e.get("categories", [])
             r["collections"] = e.get("collections", [])
             r["entities"] = e.get("entities", [])
-        return results[:top_k]
+        return reranked[:top_k]
 
     def recommend_by_occasion(self, occasion, top_k=5):
         kw = {
