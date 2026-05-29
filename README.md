@@ -22,7 +22,7 @@
 ## Tính Năng Chính
 
 - Chatbot tư vấn sản phẩm bằng tiếng Việt cho thương hiệu Carpediem.
-- Tìm kiếm sản phẩm bằng Graph RAG kết hợp FAISS vector search và Neo4j graph filtering.
+- Tìm kiếm sản phẩm bằng Graph RAG kết hợp Qdrant vector search và Neo4j graph filtering.
 - Gợi ý sản phẩm theo dịp như sinh nhật, Valentine, 8/3, 20/10, cưới hỏi, tân gia, Giáng sinh và Tết.
 - Gợi ý theo ngân sách, danh mục và nội dung mô tả sản phẩm.
 - Phân tích ảnh sản phẩm hoặc không gian để đề xuất sản phẩm phù hợp.
@@ -55,9 +55,10 @@ FastAPI API Layer
 
 Data Layer
   |-- data/cache/product_details.json
+  |-- data/cache/collection_details.json
   |-- data/chunks/*.json
   |-- data/embeddings/products.index
-  |-- data/embeddings/products_metadata.json
+  |-- data/embeddings/metadata.json
   |-- data/carpediem_chat.db
   |-- Neo4j graph database
 ```
@@ -66,7 +67,7 @@ Luồng xử lý chat chính:
 
 1. Người dùng gửi tin nhắn hoặc ảnh.
 2. `ChatBot` phân loại intent thành `product_search`, `general_qa` hoặc `image_analysis`.
-3. Với câu hỏi sản phẩm, hệ thống tìm kiếm bằng FAISS, lọc/enrich bằng Neo4j và lấy context sản phẩm liên quan.
+3. Với câu hỏi sản phẩm, hệ thống tìm kiếm bằng Qdrant, lọc/enrich bằng Neo4j và lấy context sản phẩm liên quan.
 4. OpenAI model sinh câu trả lời dựa trên prompt, lịch sử hội thoại và kết quả truy xuất.
 5. Tin nhắn được lưu vào SQLite để hỗ trợ hội thoại nhiều lượt.
 
@@ -76,7 +77,7 @@ Luồng xử lý chat chính:
 - FastAPI và Uvicorn cho HTTP API.
 - OpenAI Python SDK cho mô hình hội thoại và xử lý ảnh.
 - Neo4j cho graph database sản phẩm, danh mục, collection, entity và quan hệ tương đồng.
-- FAISS cho vector similarity search.
+- Qdrant cho vector similarity search.
 - Sentence Transformers với model `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` để tạo embedding đa ngôn ngữ.
 - SQLite cho lưu session và lịch sử chat.
 - Streamlit cho giao diện demo.
@@ -94,12 +95,16 @@ carpediem-mini-project/
 │   ├── models.py                       # Pydantic schemas
 │   └── pipeline.py                     # Chạy crawl/chunk/embedding bất đồng bộ
 ├── crawl/                              # Crawler dữ liệu sản phẩm Carpediem
+│   ├── crawl_collection_details.py     # Crawl chi tiết bộ sưu tập từ url được crawl từ file crawl_collection.py
+│   ├── crawl_collection.py             # Crawl tên và link bộ sưu tập
+│   ├── product_db.py                   # Tạo DB cho dữ liệu
 │   ├── static_crawling_details.py      # Crawl chi tiết sản phẩm từ url được crawl từ file static_crawling.py
 │   └── static_crawling.py              # Crawl tên và link sản phẩm             
 ├── data/                               # Dữ liệu cache, chunks, embeddings và SQLite DB
 │   ├── cache/
 │   ├── chunks/
 │   ├── embeddings/
+│   ├── carpediem_products.db
 │   └── carpediem_chat.db
 ├── interface/                          # Streamlit UI
 ├── processing/                         # Chunking và embedding pipeline
@@ -110,7 +115,9 @@ carpediem-mini-project/
 │   ├── chatbot.py                      # Core chatbot
 │   ├── graph_builder.py                # Neo4j builder
 │   ├── graph_rag.py                    # Graph RAG
-│   └── memory_store.py                     # memory store
+│   ├── storage.py                      # lưu ảnh vào minIO
+│   ├── vector_store.py                 # vector store
+│   └── memory_store.py                 # memory store
 ├── static/                             # Web chat UI và admin UI tĩnh
 ├── requirements.txt                    # Python dependencies
 └── README.md
@@ -171,6 +178,15 @@ NEO4J_USER=neo4j
 NEO4J_PASSWORD=your_neo4j_password
 
 ADMIN_PASSWORD=your_admin_password
+
+MINIO_ENDPOINT=
+MINIO_ACCESS_KEY=
+MINIO_SECRET_KEY=your_minio_password
+MINIO_BUCKET=your_bucket_name
+MINIO_USE_SSL=false
+
+QDRANT_URL=
+QDRANT_COLLECTION=your_collection_name
 ```
 
 Ý nghĩa các biến môi trường:

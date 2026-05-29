@@ -1,17 +1,19 @@
 import json
 import os
+import sys
 import numpy as np
 from sentence_transformers import SentenceTransformer
-import faiss
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from src.vector_store import VectorStore, VECTOR_SIZE
+
 
 class EmbeddingPipeline:
     def __init__(self, model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"):
         self.model_name = model_name
         self.model = SentenceTransformer(model_name)
         self.chunks_dir = "data/chunks"
-        self.output_dir = "data/embeddings"
-        self.index_path = os.path.join(self.output_dir, "products.index")
-        self.metadata_path = os.path.join(self.output_dir, "metadata.json")
+        self.store = VectorStore()
 
     def load_chunks(self):
         all_products = []
@@ -36,17 +38,10 @@ class EmbeddingPipeline:
         embeddings = self.model.encode(texts, show_progress_bar=True, convert_to_numpy=True)
         return embeddings
 
-    def build_faiss_index(self, embeddings):
-        dimension = embeddings.shape[1]
-        index = faiss.IndexFlatIP(dimension)
-        faiss.normalize_L2(embeddings)
-        index.add(embeddings)
-        return index
-
-    def create_metadata(self, products):
-        metadata = []
+    def create_payloads(self, products):
+        payloads = []
         for p in products:
-            metadata.append({
+            payloads.append({
                 "collection_id": p.get("collection_id", ""),
                 "collection_name": p.get("collection_name", ""),
                 "collection_url": p.get("collection_url", ""),
@@ -57,25 +52,25 @@ class EmbeddingPipeline:
                 "images": p.get("images", []),
                 "status": p.get("status", ""),
             })
-        return metadata
-
-    def save(self, index, metadata):
-        os.makedirs(self.output_dir, exist_ok=True)
-        faiss.write_index(index, self.index_path)
-        with open(self.metadata_path, "w", encoding="utf-8") as f:
-            json.dump(metadata, f, ensure_ascii=False, indent=2)
+        return payloads
 
     def run(self):
         products = self.load_chunks()
+        if not self.store.available:
+            return {"total_products": 0, "error": "Qdrant not available"}
+
+        self.store.delete_collection()
+        self.store._ensure_collection()
         embeddings = self.create_embeddings(products)
-        index = self.build_faiss_index(embeddings)
-        metadata = self.create_metadata(products)
-        self.save(index, metadata)
+        payloads = self.create_payloads(products)
+        self.store.upsert(embeddings, payloads)
+
         return {
             "total_products": len(products),
             "embedding_dim": embeddings.shape[1],
-            "output_dir": self.output_dir,
+            "vector_store": "qdrant",
         }
+
 
 if __name__ == "__main__":
     pipeline = EmbeddingPipeline()

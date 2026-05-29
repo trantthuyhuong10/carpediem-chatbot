@@ -1,22 +1,24 @@
 import json
 import os
+import sys
 import re
 import numpy as np
-import faiss
 from sentence_transformers import SentenceTransformer
 from typing import List, Dict
 from neo4j import GraphDatabase
 from neo4j.exceptions import ServiceUnavailable
 from dotenv import load_dotenv
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from src.vector_store import VectorStore
+
 load_dotenv()
+
 
 class GraphRAG:
     def __init__(self, model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"):
         self.model = SentenceTransformer(model_name)
-        self.index = faiss.read_index("data/embeddings/products.index")
-        with open("data/embeddings/metadata.json", "r", encoding="utf-8") as f:
-            self.metadata = json.load(f)
+        self.store = VectorStore()
         self.driver = GraphDatabase.driver(
             os.getenv("NEO4J_URI"), auth=(os.getenv("NEO4J_USER"), os.getenv("NEO4J_PASSWORD"))
         )
@@ -35,16 +37,11 @@ class GraphRAG:
             return default
 
     def semantic_search(self, query, top_k=5):
+        if not self.store.available:
+            return []
         emb = self.model.encode([query], convert_to_numpy=True)
-        faiss.normalize_L2(emb)
-        scores, indices = self.index.search(emb, min(top_k * 2, len(self.metadata)))
-        results = []
-        for i, idx in enumerate(indices[0]):
-            if 0 <= idx < len(self.metadata):
-                item = self.metadata[idx].copy()
-                item["score"] = float(scores[0][i])
-                results.append(item)
-        return results
+        results = self.store.search(emb[0], top_k)
+        return results[:min(top_k * 2, len(results))]
 
     def graph_filter_by_category(self, names, category):
         rows = self._run_neo4j_query("""
@@ -95,6 +92,8 @@ class GraphRAG:
 
     def graph_vector_hybrid_search(self, query, top_k=5):
         results = self.semantic_search(query, top_k * 2)
+        if not results:
+            return []
         names = [r["name"] for r in results]
 
         price_range = self.extract_price_range(query)
@@ -149,6 +148,8 @@ class GraphRAG:
         else:
             min_p, max_p = int(min(price_range)), int(max(price_range))
         results = self.semantic_search("sản phẩm quà tặng", top_k * 3)
+        if not results:
+            return []
         names = [r["name"] for r in results]
         filtered = self.graph_filter_by_price(names, min_p, max_p)
         results = [r for r in results if r["name"] in filtered]
@@ -284,9 +285,7 @@ class GraphRAG:
         images = p.get("images", [])
         return {
             "name": p.get("name", ""),
-            "original_price": p.get("original_price", ""),
             "price": p.get("price", ""),
-            "discount": p.get("discount", ""),
             "url": url,
             "image": images[0] if images else "",
             "score": p.get("score", 0),

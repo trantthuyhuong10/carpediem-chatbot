@@ -195,8 +195,6 @@ Kết quả tìm kiếm:
             formatted.append({
                 "name": item.get("name", ""),
                 "price": item.get("price", ""),
-                "original_price": "",
-                "discount": "",
                 "url": item.get("url", ""),
                 "image": item.get("image", ""),
                 "score": 0.0,
