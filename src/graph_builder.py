@@ -1,11 +1,14 @@
+import sys
 from neo4j import GraphDatabase
 from typing import List, Dict, Any, Optional
 import os
 import re
 import json
 import numpy as np
-import faiss
 from dotenv import load_dotenv
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from src.vector_store import VectorStore
 
 load_dotenv()
 
@@ -31,6 +34,7 @@ class Neo4jGraphBuilder:
 
     def clear_database(self):
         with self.driver.session() as s:
+            s.run("DROP CONSTRAINT similarity_pair IF EXISTS")
             s.run("MATCH (n) DETACH DELETE n")
 
     def create_constraints(self):
@@ -40,7 +44,6 @@ class Neo4jGraphBuilder:
                 "CREATE CONSTRAINT category_name IF NOT EXISTS FOR (c:Category) REQUIRE c.name IS UNIQUE",
                 "CREATE CONSTRAINT collection_name IF NOT EXISTS FOR (c:Collection) REQUIRE c.name IS UNIQUE",
                 "CREATE CONSTRAINT entity_name IF NOT EXISTS FOR (e:Entity) REQUIRE e.name IS UNIQUE",
-                "CREATE CONSTRAINT similarity_pair IF NOT EXISTS FOR ()-[r:SIMILAR_TO]-() REQUIRE r.pair_id IS UNIQUE",
             ]:
                 s.run(c)
 
@@ -151,16 +154,27 @@ class Neo4jGraphBuilder:
 
     def load_products_from_json(self, filepath, collection_name="all"):
         with open(filepath, "r", encoding="utf-8") as f:
-            products = json.load(f)
+            data = json.load(f)
+
         products = []
-        if isinstance(raw, dict):
-            for coll_name, items in raw.items():
-                self.create_collection_node(coll_name)
-                for item in items:
-                    item["collection_name"] = coll_name
-                    products.append(item)
+        if isinstance(data, dict):
+            if "collections" in data:
+                for col in data["collections"]:
+                    coll_name = col.get("name", collection_name)
+                    self.create_collection_node(coll_name)
+                    for item in col.get("products", []):
+                        item["collection_name"] = coll_name
+                        products.append(item)
+            else:
+                for coll_name, items in data.items():
+                    if not isinstance(items, list):
+                        continue
+                    self.create_collection_node(coll_name)
+                    for item in items:
+                        item["collection_name"] = coll_name
+                        products.append(item)
         else:
-            products = raw
+            products = data
             self.create_collection_node(collection_name)
         
         for idx, product in enumerate(products):
@@ -212,10 +226,13 @@ class Neo4jGraphBuilder:
         products=[]
 
         if isinstance(raw,dict):
-
-            for items in raw.values():
-                products.extend(items)
-
+            if "collections" in raw:
+                for col in raw["collections"]:
+                    products.extend(col.get("products", []))
+            else:
+                for items in raw.values():
+                    if isinstance(items, list):
+                        products.extend(items)
         else:
             products=raw
 
@@ -246,27 +263,40 @@ class Neo4jGraphBuilder:
         return count
 
     def build_similarity_edges(self, threshold=0.7):
-        index_path = "data/embeddings/products.index"
-        metadata_path = "data/embeddings/metadata.json"
-        index = faiss.read_index(index_path)
-        with open(metadata_path, "r", encoding="utf-8") as f:
-            metadata = json.load(f)
-        n = index.ntotal
+        with self.driver.session() as s:
+            s.run("MATCH ()-[r:SIMILAR_TO]->() DELETE r")
+
+        store = VectorStore()
+        if not store.available:
+            return 0
+
+        ids, vectors, payloads = store.get_all_points()
+        n = len(vectors)
+        if n == 0:
+            return 0
+
         similarities = []
         for i in range(n):
-            vec = index.reconstruct(i).reshape(1, -1)
-            scores, indices = index.search(vec, min(50, n))
-            for j, idx in enumerate(indices[0]):
+            query_vec = vectors[i].reshape(1, -1)
+            scores = vectors @ query_vec.T
+            scores = scores.flatten()
+            top_indices = np.argsort(-scores)[:min(50, n)]
+            for idx in top_indices:
                 if idx <= i or idx >= n:
                     continue
-                score = float(scores[0][j])
+                score = float(scores[idx])
                 if score >= threshold:
+                    source_name = payloads[i].get("name", "")
+                    target_name = payloads[idx].get("name", "")
+                    if not source_name or not target_name:
+                        continue
                     similarities.append({
-                        "source_name": metadata[i]["name"],
-                        "target_name": metadata[idx]["name"],
+                        "source_name": source_name,
+                        "target_name": target_name,
                         "similarity": round(score, 4),
                         "pair_id": f"{i}_{idx}",
                     })
+
         with self.driver.session() as s:
             for sim in similarities:
                 s.run("""

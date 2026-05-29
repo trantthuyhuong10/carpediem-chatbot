@@ -3,7 +3,12 @@ from bs4 import BeautifulSoup
 import time
 import json
 import os
+import sys
 from crawl.product_db import ProductDatabase
+
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, project_root)
+from src.storage import MinioStorage
 
 class DetailCrawler:
     def __init__(self):
@@ -16,6 +21,7 @@ class DetailCrawler:
         self.session.headers.update(self.headers)
         self.visited_urls = set()
         self.products_details = []
+        self.storage = MinioStorage()
 
     def load_products(self, filepath):
         with open(filepath, "r", encoding="utf-8") as f:
@@ -60,18 +66,30 @@ class DetailCrawler:
             detail["description"] = ""
 
         try:
-            images = []
+            raw_images = []
             img_tags = soup.select("img.w-auto[src*='bizweb.dktcdn.net']")
             for img in img_tags:
                 src = img.get("src") or img.get("data-src")
                 if src and "product" in src:
                     if src.startswith("//"):
                         src = "https:" + src
-                    images.append(src)
-            if not images:
+                    raw_images.append(src)
+            if not raw_images:
                 og_image = soup.select_one('meta[property="og:image"]')
                 if og_image and og_image.get("content"):
-                    images.append(og_image["content"])
+                    raw_images.append(og_image["content"])
+
+            images = []
+            for i, img_url in enumerate(raw_images):
+                if self.storage.available:
+                    key = self.storage.product_image_key(product_url, index=i)
+                    uploaded = self.storage.upload_from_url(key, img_url)
+                    if uploaded:
+                        images.append(uploaded)
+                    else:
+                        images.append(img_url)
+                else:
+                    images.append(img_url)
             detail["images"] = images
         except:
             detail["images"] = []
@@ -95,132 +113,6 @@ class DetailCrawler:
                 soup = self.parse_page(html)
                 detail = self.extract_product_detail(soup, url)
                 self.products_details.append(detail)
-            
-            self.analyze_giftsets()
-            
-    def is_giftset(self, product):
-
-        text=(
-            product.get("name","")+" "+
-            product.get("description","")
-        ).lower()
-
-        keywords=[
-            "gift set",
-            "giftset",
-            "bộ quà",
-            "combo quà"
-        ]
-
-        return any(
-            k in text
-            for k in keywords
-        )
-
-
-    def match_product(self,text,catalog):
-
-        best=None
-        best_score=0
-
-        for p in catalog:
-
-            score=fuzz.partial_ratio(
-                text.lower(),
-                p.lower()
-            )
-
-            if score>best_score:
-                best_score=score
-                best=p
-
-        if best_score>=80:
-            return best
-
-        return None
-
-
-    def extract_giftset_products(
-            self,
-            giftset,
-            all_products
-    ):
-
-        description=giftset.get(
-            "description",""
-        )
-
-        catalog=[]
-
-        for p in all_products:
-
-            name=p.get(
-                "name",""
-            )
-
-            if name:
-                catalog.append(name)
-
-        lines=re.split(
-            r"[\n•\-]+",
-            description
-        )
-
-        found=[]
-
-        for line in lines:
-
-            text=line.strip()
-
-            if not text:
-                continue
-
-            text_lower=text.lower()
-
-            ignore=False
-
-            for bad in self.ignore_items:
-
-                if bad in text_lower:
-                    ignore=True
-                    break
-
-            if ignore:
-                continue
-
-            matched=self.match_product(
-                text,
-                catalog
-            )
-
-            if matched:
-                found.append(matched)
-
-        return list(set(found))
-
-
-    def analyze_giftsets(self):
-
-        print("\nAnalyzing giftsets...")
-
-        for product in self.products_details:
-
-            if not self.is_giftset(product):
-                continue
-
-            items=self.extract_giftset_products(
-                product,
-                self.products_details
-            )
-
-            product["giftset_items"]=items
-
-            print(
-                product["name"]
-            )
-
-            for x in items:
-                print("   └─",x)
 
     def save_json(self, filepath):
         os.makedirs(os.path.dirname(filepath), exist_ok=True)

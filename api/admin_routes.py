@@ -1,15 +1,18 @@
 import os
 import sys
 from typing import Optional
+from urllib.parse import unquote
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, project_root)
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from api.auth import check_password, generate_token, require_auth
 from api import pipeline
+from src.storage import MinioStorage
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -187,5 +190,68 @@ async def get_admin_stats(request: Request):
             "total_sessions": bot_stats.get("session_messages", 0),
             "current_session_messages": bot_stats.get("session_messages", 0),
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/images/upload")
+async def upload_product_image(
+    request: Request,
+    product_url: str = Form(""),
+    image: UploadFile = File(...),
+):
+    await require_auth(request)
+    try:
+        storage: MinioStorage = request.app.state.storage
+        if not storage or not storage.available:
+            raise HTTPException(status_code=503, detail="MinIO not available")
+
+        data = await image.read()
+        if not data:
+            raise HTTPException(status_code=400, detail="Empty file")
+
+        if product_url:
+            key = storage.product_image_key(product_url)
+        else:
+            key = storage.upload_image_key("uploads/admin")
+
+        content_type = image.content_type or "image/webp"
+        storage.upload_from_bytes(key, data, content_type)
+
+        presigned = storage.resolve(key, expires=86400)
+        return {
+            "status": "ok",
+            "key": key,
+            "url": presigned,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/images/url")
+async def get_image_url(key: str, request: Request):
+    await require_auth(request)
+    try:
+        storage: MinioStorage = request.app.state.storage
+        if not storage or not storage.available:
+            raise HTTPException(status_code=503, detail="MinIO not available")
+        url = storage.resolve(key, expires=86400)
+        return {"key": key, "url": url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/images/{key:path}")
+async def delete_image(key: str, request: Request):
+    await require_auth(request)
+    try:
+        key = unquote(key)
+        storage: MinioStorage = request.app.state.storage
+        if not storage or not storage.available:
+            raise HTTPException(status_code=503, detail="MinIO not available")
+        storage.delete(key)
+        return {"status": "ok", "message": f"Đã xóa: {key}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

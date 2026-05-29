@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.chatbot import ChatBot
+from src.storage import MinioStorage
 from api.models import ChatRequest, ChatResponse, StatsResponse, HealthResponse, ProductResult, SessionInfo, MessageItem
 from fastapi.security import HTTPBearer
 from api.admin_routes import router as admin_router
@@ -31,6 +32,7 @@ app.add_middleware(
 )
 
 bot: ChatBot = None
+storage: MinioStorage = None
 
 static_dir = Path(project_root) / "static"
 if static_dir.exists():
@@ -71,7 +73,7 @@ app.openapi = custom_openapi
 
 @app.on_event("startup")
 async def startup():
-    global bot
+    global bot, storage
     try:
         bot = ChatBot()
         app.state.bot = bot
@@ -79,6 +81,11 @@ async def startup():
     except Exception as e:
         print(f"[ERROR] ChatBot init failed: {e}")
         raise
+    try:
+        storage = MinioStorage()
+        app.state.storage = storage
+    except Exception as e:
+        print(f"[WARN] MinIO init failed: {e}")
 
 
 @app.get("/")
@@ -112,6 +119,17 @@ async def health_check():
     return HealthResponse(status="healthy", neo4j=neo4j_status, graph_rag=rag_status)
 
 
+def _resolve_product_images(results):
+    s = getattr(app.state, "storage", None)
+    if not s or not s.available:
+        return results
+    for r in results:
+        img = r.get("image", "")
+        if s.is_minio_key(img):
+            r["image"] = s.resolve(img, expires=7200)
+    return results
+
+
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     if not request.message and not request.image:
@@ -137,6 +155,7 @@ async def chat(request: ChatRequest):
                     image_data = request.image
 
         answer, results = bot.chat(request.message, image=image_data)
+        results = _resolve_product_images(results)
 
         product_results = []
         for r in results:
@@ -164,6 +183,7 @@ async def chat_with_upload(message: str = Form(""), image: UploadFile = File(Non
             image_data = await image.read()
 
         answer, results = bot.chat(message, image=image_data)
+        results = _resolve_product_images(results)
 
         product_results = []
         for r in results:
