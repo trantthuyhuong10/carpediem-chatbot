@@ -48,8 +48,18 @@ Hãy trả lời bằng tiếng Việt:
     GENERAL_PROMPT = """Bạn là trợ lý AI cho thương hiệu Carpediem - chuyên về nến thơm, tinh dầu, đá thơm và giftset cao cấp tại Việt Nam.
 
 Thông tin về Carpediem:
-- Thương hiệu nến thơm và sản phẩm mùi hương Việt Nam
 - Sản phẩm: nến thơm, tinh dầu, đá thơm khuếch hương, giftset quà tặng
+- Số điện thoại: 0879778688
+- Email: carpediemvn.office@gmail.com
+- Hệ thống cửa hàng:
++ Cửa hàng số 1: 27 Hội Vũ, Hà Nội
++ Cửa hàng số 2: 50A Đào Duy Từ, Hà Nội
++ Cửa hàng số 3: 48 Ấu Triệu, Hà Nội
++ Cửa hàng số 4: 5/2 Tô Hiến Thành, Nha Trang
++ Cửa hàng số 5: 197 Nguyên Thiện Thuật, Nha Trang
++ Cửa hàng số 6: 58 Lê Lợi, Quận 1, Hồ Chí Minh 
++ Cửa hàng số 7: 03 Hàng Đường, Hà Nội
++ Cửa hàng số 8: 28 Thảo Điền, Quận 2, Hồ Chí Minh
 - Website: https://carpediem.vn
 
 {conversation_context}
@@ -171,8 +181,7 @@ Kết quả tìm kiếm:
 
     def _resolve_contextual_query(self, query: str) -> str:
         pronouns = ["đó", "này", "kia", "nó", "cái đó", "cái này",
-                    "sản phẩm đó", "món đó", "loại đó", "em đó",
-                    "cái nào", "món nào", "loại nào"]
+                    "sản phẩm đó", "món đó", "loại đó", "em đó"]
         has_pronoun = any(p in query.lower() for p in pronouns)
         if not has_pronoun:
             return query

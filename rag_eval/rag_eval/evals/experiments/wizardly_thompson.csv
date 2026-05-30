@@ -1,0 +1,15 @@
+question,grading_notes,response,score,log_file
+Carpediem có bao nhiêu cửa hàng?,"- trả lời được số lượng cửa hàng
+- có địa chỉ cụ thể (Hà Nội, Nha Trang, HCM)",I couldn't find any relevant documents to answer your question.,fail,evals/logs/rag_run_20260530_144658_9681_2026-05-30T14-46-58-423047.json
+Tinh dầu thư giãn có loại nào?,"- gợi ý tinh dầu (essential oil)
+- có tên sản phẩm cụ thể
+- hướng đến mục đích thư giãn (relaxing)",I couldn't find any relevant documents to answer your question.,fail,evals/logs/rag_run_20260530_144800_9169_2026-05-30T14-48-00-115866.json
+Gợi ý nến thơm dưới 500k,"- gợi ý sản phẩm nến thơm
+- giá dưới 500,000 VND
+- có tên sản phẩm cụ thể",I couldn't find any relevant documents to answer your question.,fail,evals/logs/rag_run_20260530_144901_1498_2026-05-30T14-49-01-399634.json
+Quà sinh nhật cho bạn gái tặng gì?,"- gợi ý quà tặng sinh nhật cho nữ
+- có thể là giftset hoặc nến thơm
+- có gợi ý sản phẩm cụ thể",I couldn't find any relevant documents to answer your question.,fail,evals/logs/rag_run_20260530_145002_2351_2026-05-30T14-50-02-784086.json
+BST Trúc Xinh gồm những sản phẩm gì?,"- BST Trúc Xinh là bộ sưu tập chủ đề tre trúc
+- có tên sản phẩm cụ thể trong BST
+- có thể kèm giá hoặc chất liệu",I couldn't find any relevant documents to answer your question.,fail,evals/logs/rag_run_20260530_145104_7155_2026-05-30T14-51-04-748587.json

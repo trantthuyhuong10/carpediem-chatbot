@@ -1,0 +1,111 @@
+{
+  "run_id": "20260530_143343_5564",
+  "timestamp": "2026-05-30T14:33:43.780546",
+  "query": "What is ragas 0.3",
+  "result": {
+    "answer": "Error generating response: Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 16384 tokens, but can only afford 3999. To increase, visit https://openrouter.ai/settings/credits and upgrade to a paid account', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DR4uhSylVZCUCmn1xW153u9v7r'}",
+    "run_id": "20260530_143343_5564"
+  },
+  "num_documents": 5,
+  "traces": [
+    {
+      "event_type": "query_start",
+      "component": "rag_system",
+      "data": {
+        "run_id": "20260530_143343_5564",
+        "question": "What is ragas 0.3",
+        "question_length": 17,
+        "top_k": 3,
+        "total_documents": 5
+      }
+    },
+    {
+      "event_type": "retrieval",
+      "component": "retriever",
+      "data": {
+        "operation": "retrieve_start",
+        "query": "What is ragas 0.3",
+        "query_length": 17,
+        "top_k": 3,
+        "total_documents": 5
+      }
+    },
+    {
+      "event_type": "retrieval",
+      "component": "retriever",
+      "data": {
+        "operation": "retrieve_complete",
+        "num_retrieved": 3,
+        "scores": [
+          1,
+          1,
+          1
+        ],
+        "document_ids": [
+          0,
+          2,
+          4
+        ]
+      }
+    },
+    {
+      "event_type": "retrieval",
+      "component": "retriever",
+      "data": {
+        "operation": "retrieve_start",
+        "query": "What is ragas 0.3",
+        "query_length": 17,
+        "top_k": 3,
+        "total_documents": 5
+      }
+    },
+    {
+      "event_type": "retrieval",
+      "component": "retriever",
+      "data": {
+        "operation": "retrieve_complete",
+        "num_retrieved": 3,
+        "scores": [
+          1,
+          1,
+          1
+        ],
+        "document_ids": [
+          0,
+          2,
+          4
+        ]
+      }
+    },
+    {
+      "event_type": "llm_call",
+      "component": "openai_api",
+      "data": {
+        "operation": "generate_response",
+        "model": "gpt-4o",
+        "query": "What is ragas 0.3",
+        "prompt_length": 482,
+        "context_length": 215,
+        "num_context_docs": 3
+      }
+    },
+    {
+      "event_type": "error",
+      "component": "openai_api",
+      "data": {
+        "operation": "generate_response",
+        "error": "Error code: 402 - {'error': {'message': 'This request requires more credits, or fewer max_tokens. You requested up to 16384 tokens, but can only afford 3999. To increase, visit https://openrouter.ai/settings/credits and upgrade to a paid account', 'code': 402, 'metadata': {'provider_name': None}}, 'user_id': 'user_3DR4uhSylVZCUCmn1xW153u9v7r'}"
+      }
+    },
+    {
+      "event_type": "query_complete",
+      "component": "rag_system",
+      "data": {
+        "run_id": "20260530_143343_5564",
+        "success": true,
+        "response_length": 372,
+        "num_retrieved": 3
+      }
+    }
+  ]
+}

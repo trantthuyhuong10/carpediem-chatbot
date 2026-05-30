@@ -1,0 +1,14 @@
+ragas[all]==0.3.0
+openai>=1.0.0
+neo4j>=5.0.0
+sentence-transformers>=2.2.0
+numpy>=1.24.0
+Pillow>=10.0.0
+requests>=2.28.0
+qdrant-client>=1.7.0
+python-dotenv>=1.0.0
+langchain-community>=0.3.31
+langchain-google-vertexai>=2.1.2
+
+[dev]
+pytest>=7.0

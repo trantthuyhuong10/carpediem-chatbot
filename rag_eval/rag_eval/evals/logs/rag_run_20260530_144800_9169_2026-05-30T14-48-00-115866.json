@@ -1,0 +1,75 @@
+{
+  "run_id": "20260530_144800_9169",
+  "timestamp": "2026-05-30T14:48:00.115866",
+  "query": "Tinh d\u1ea7u th\u01b0 gi\u00e3n c\u00f3 lo\u1ea1i n\u00e0o?",
+  "result": {
+    "answer": "I couldn't find any relevant documents to answer your question.",
+    "run_id": "20260530_144800_9169"
+  },
+  "num_documents": 5,
+  "traces": [
+    {
+      "event_type": "query_start",
+      "component": "rag_system",
+      "data": {
+        "run_id": "20260530_144800_9169",
+        "question": "Tinh d\u1ea7u th\u01b0 gi\u00e3n c\u00f3 lo\u1ea1i n\u00e0o?",
+        "question_length": 30,
+        "top_k": 3,
+        "total_documents": 5
+      }
+    },
+    {
+      "event_type": "retrieval",
+      "component": "retriever",
+      "data": {
+        "operation": "retrieve_start",
+        "query": "Tinh d\u1ea7u th\u01b0 gi\u00e3n c\u00f3 lo\u1ea1i n\u00e0o?",
+        "query_length": 30,
+        "top_k": 3,
+        "total_documents": 5
+      }
+    },
+    {
+      "event_type": "retrieval",
+      "component": "retriever",
+      "data": {
+        "operation": "retrieve_complete",
+        "num_retrieved": 0,
+        "scores": [],
+        "document_ids": []
+      }
+    },
+    {
+      "event_type": "retrieval",
+      "component": "retriever",
+      "data": {
+        "operation": "retrieve_start",
+        "query": "Tinh d\u1ea7u th\u01b0 gi\u00e3n c\u00f3 lo\u1ea1i n\u00e0o?",
+        "query_length": 30,
+        "top_k": 3,
+        "total_documents": 5
+      }
+    },
+    {
+      "event_type": "retrieval",
+      "component": "retriever",
+      "data": {
+        "operation": "retrieve_complete",
+        "num_retrieved": 0,
+        "scores": [],
+        "document_ids": []
+      }
+    },
+    {
+      "event_type": "query_complete",
+      "component": "rag_system",
+      "data": {
+        "run_id": "20260530_144800_9169",
+        "success": true,
+        "response_length": 63,
+        "num_retrieved": 0
+      }
+    }
+  ]
+}
